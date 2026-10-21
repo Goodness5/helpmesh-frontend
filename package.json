@@ -6,12 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test lib/model.test.ts lib/chain/plain.test.ts",
     "lint": "eslint"
   },
   "dependencies": {
     "next": "16.4.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "viem": "^2.57.4"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
