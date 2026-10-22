@@ -255,6 +255,17 @@ export function NewRequest() {
           </div>
         </div>
 
+        {/* Zero-Data Privacy & Cryptographic Security Disclosure */}
+        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-5 sm:p-6 space-y-2.5 backdrop-blur-sm">
+          <div className="flex items-center gap-2 text-xs font-mono text-[#25f497]">
+            <ShieldCheck className="size-4" />
+            <span className="uppercase tracking-widest font-semibold">Zero Centralized Data Collection · 100% Private</span>
+          </div>
+          <p className="text-xs font-mono text-zinc-400 leading-relaxed">
+            HelpMesh collects no personal telemetry, emails, or phone records on central servers. Escrows execute autonomously via Base Sepolia smart contracts, and real-time audio/video and location streams are peer-to-peer (P2P) and vanish the moment your session completes.
+          </p>
+        </div>
+
         <div className="flex flex-wrap items-center gap-4">
           <button
             type="button"

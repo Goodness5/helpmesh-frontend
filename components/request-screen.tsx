@@ -40,6 +40,8 @@ import {
   MessageSquare,
   Volume2,
   PhoneCall,
+  Phone,
+  Video,
   ArrowUpRight,
   User,
   Heart,
@@ -48,6 +50,8 @@ import {
   Send,
   Lock,
 } from "lucide-react"
+import { CallModal } from "@/components/call-modal"
+import { LiveLocation } from "@/components/live-location"
 
 const replies = ["I'm here", "I'm at the entrance", "Please wait 2 minutes", "I can't hear you, I'll text"]
 const reasons = ["I don't need help now", "I can't make it", "Something else"]
@@ -58,6 +62,8 @@ export function RequestScreen({ id }: { id: string }) {
   const request = demo.requests.find((item) => item.id === id)
   const [holdOpen, setHoldOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [callOpen, setCallOpen] = useState(false)
+  const [callType, setCallType] = useState<"video" | "audio">("video")
   const [cardOpen, setCardOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [problemOpen, setProblemOpen] = useState(false)
@@ -505,6 +511,58 @@ export function RequestScreen({ id }: { id: string }) {
       {/* Active Session Coordination Tools */}
       {active && (
         <div className="space-y-6">
+          {/* Direct Peer Call Mode Card */}
+          <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-9 backdrop-blur-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="size-11 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#25f497]">
+                  <Video className="size-6 stroke-[1.8]" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-mono font-medium text-white tracking-tight">
+                    In-App Direct Call Mode
+                  </h2>
+                  <p className="text-xs font-mono text-zinc-500">
+                    Encrypted WebRTC P2P stream · No recordings · 100% private
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCallType("video")
+                    setCallOpen(true)
+                  }}
+                  className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-5 py-2.5 rounded-full text-xs transition-all duration-150 hover:scale-[1.02] shadow-[0_0_20px_rgba(37,244,151,0.2)]"
+                >
+                  <Video className="size-4" />
+                  <span>Start Video Call</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCallType("audio")
+                    setCallOpen(true)
+                  }}
+                  className="inline-flex items-center gap-2 border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-mono font-medium px-5 py-2.5 rounded-full text-xs transition-colors"
+                >
+                  <Phone className="size-4 text-[#25f497]" />
+                  <span>Voice Only</span>
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs font-mono text-zinc-400 leading-relaxed">
+              Connect camera and microphone in real time with {shownHelper}. High-fidelity WebRTC signaling handled locally in-app without centralized recording servers.
+            </p>
+          </div>
+
+          {/* Live GPS Telemetry and Proximity Stream */}
+          <LiveLocation requestId={request.id} peerName={shownHelper} asHelper={asHelper} />
+
           {/* Messaging Card */}
           <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-9 backdrop-blur-sm space-y-6">
             <div className="flex items-center gap-3 border-b border-zinc-900 pb-5">
@@ -877,6 +935,15 @@ export function RequestScreen({ id }: { id: string }) {
           </button>
         </div>
       </Dialog>
+
+      <CallModal
+        open={callOpen}
+        requestId={request.id}
+        peerName={shownHelper}
+        initialCallType={callType}
+        asHelper={asHelper}
+        onClose={() => setCallOpen(false)}
+      />
     </div>
   )
 }

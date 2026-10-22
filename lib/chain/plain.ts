@@ -3,7 +3,7 @@ import { encodePacked, keccak256, toBytes, toHex, type Hex } from "viem"
 const FUND_CATEGORIES = ["mobility", "vision", "hearing"]
 const FUND_MAX = 20_000_000n
 
-export const liveChain = process.env.NEXT_PUBLIC_DEMO_MODE === "false"
+export const liveChain = process.env.NEXT_PUBLIC_DEMO_MODE !== "true"
 
 /** Canonical rules text. Its hash is what the pool stores. */
 export const RULES_TEXT =

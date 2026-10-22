@@ -38,9 +38,9 @@ export function WalletScreen() {
     <div className="w-full max-w-4xl mx-auto space-y-8 sm:space-y-10 py-6">
       {/* Header Eyebrow */}
       <div className="space-y-3">
-        <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/70 text-xs font-mono uppercase tracking-widest text-zinc-300">
+        <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/70 text-xs font-mono uppercase tracking-widest text-[#25f497]">
           <span className="size-2 rounded-full bg-[#25f497] animate-pulse" />
-          <span>{liveChain ? "Base Sepolia Escrow Node" : "Local In-Browser Simulation"}</span>
+          <span>Base Sepolia Escrow Node · Chain ID 84532</span>
         </div>
         <PageTitle>Your money</PageTitle>
         <p className="text-sm sm:text-base font-mono text-zinc-400 max-w-2xl leading-relaxed">
@@ -74,27 +74,23 @@ export function WalletScreen() {
 
         <div className="py-6 space-y-6">
           <p className="text-sm font-mono text-zinc-400 leading-relaxed max-w-2xl">
-            {liveChain
-              ? "Test money on Base Sepolia (Chain ID 84532). It has no cash value. Amounts you commit are held in an autonomous smart contract escrow until you confirm help is complete."
-              : "Demo chain active. This balance is managed locally within your browser and does not touch an external network."}
+            Test money on Base Sepolia (Chain ID 84532). It has no cash value. Amounts you commit are held in an autonomous smart contract escrow until you confirm help is complete.
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
-            {liveChain && (
-              <button
-                type="button"
-                onClick={() => {
-                  announce("Requesting test USDC from faucet...")
-                  void faucet().then((message) => announce(message))
-                }}
-                className="group inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_24px_rgba(37,244,151,0.2)]"
-              >
-                <span>Add test money</span>
-                <span className="flex items-center justify-center size-6 rounded-full bg-black text-[#25f497]">
-                  <Plus className="size-3.5 stroke-[2.5]" />
-                </span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                announce("Requesting test USDC from faucet...")
+                void faucet().then((message) => announce(message))
+              }}
+              className="group inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_24px_rgba(37,244,151,0.2)]"
+            >
+              <span>Add test money</span>
+              <span className="flex items-center justify-center size-6 rounded-full bg-black text-[#25f497]">
+                <Plus className="size-3.5 stroke-[2.5]" />
+              </span>
+            </button>
 
             <button
               type="button"

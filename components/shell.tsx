@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react"
 import { LiveRegions } from "@/components/announce"
-import { liveChain } from "@/lib/chain/plain"
+import { VoiceController } from "@/components/voice-controller"
 import { applyPrefs, defaultPrefs, prefsSnapshot, subscribePrefs } from "@/lib/prefs"
 import { Sun, Moon, HelpCircle } from "lucide-react"
 
@@ -93,14 +93,14 @@ export function Shell({ children }: { children: ReactNode }) {
             {/* Network indicator with pulsing status dot */}
             <div
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono bg-zinc-950 border border-zinc-800 text-zinc-300"
-              title={liveChain ? "Connected to Base Sepolia testnet" : "Running on local browser demo chain"}
+              title="Connected to Base Sepolia Escrow Smart Contracts (Chain ID: 84532)"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25f497] opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#25f497]" />
               </span>
-              <span className="hidden sm:inline font-mono text-[11px] uppercase tracking-wider text-zinc-400">
-                {liveChain ? "Base Sepolia" : "Demo Mesh"}
+              <span className="hidden sm:inline font-mono text-[11px] uppercase tracking-wider text-zinc-300">
+                Base Sepolia Escrow
               </span>
             </div>
 
@@ -160,6 +160,7 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* Main Content Container with strict padding & layout */}
       <main id="main" tabIndex={-1} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 focus:outline-none">
         <LiveRegions />
+        <VoiceController />
         {children}
       </main>
 
@@ -167,11 +168,11 @@ export function Shell({ children }: { children: ReactNode }) {
       <footer className="border-t border-zinc-900 py-12 px-4 sm:px-6 lg:px-8 bg-black">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs font-mono text-zinc-500">
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left">
-            <p>
-              {liveChain ? "Test USDC on Base Sepolia. Zero cash value." : "Demo chain. State preserved in local browser storage."}
+            <p className="text-zinc-400">
+              Autonomous Escrow on Base Sepolia · Zero Data Collection · Private &amp; Non-Custodial
             </p>
             <span className="hidden sm:inline text-zinc-800">|</span>
-            <p className="text-zinc-400">HelpMesh is not an emergency dispatcher.</p>
+            <p className="text-zinc-500">HelpMesh is not an emergency dispatcher.</p>
           </div>
           <div className="flex items-center gap-5">
             <Link href="/onboarding" className="hover:text-zinc-300 transition-colors">

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { Reach } from "@/components/reach"
 import { VectorMesh } from "@/components/vector-mesh"
-import { HeartHandshake, ShieldCheck, Sparkles, ArrowUpRight, ArrowRight, Activity, Users, Lock } from "lucide-react"
+import { HeartHandshake, ShieldCheck, Sparkles, ArrowUpRight, ArrowRight, Activity, Users, Lock, EyeOff, Mic, Video } from "lucide-react"
 
 export const metadata: Metadata = {
   title: { absolute: "HelpMesh · Peer-to-Peer Assistance Network" },
@@ -192,6 +192,64 @@ export default function HomePage() {
               <span className="text-zinc-500">Max $25 / req</span>
             </div>
           </article>
+        </div>
+      </section>
+
+      {/* Cryptographic Privacy & Zero-Data Collection Section */}
+      <section className="space-y-6 sm:space-y-8" aria-label="Privacy and Architecture">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-zinc-800/80 pb-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <EyeOff className="size-4 text-[#25f497]" />
+              <span className="text-xs font-mono uppercase tracking-widest text-[#25f497]">
+                Zero Centralized Data Collection
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-mono font-medium text-white tracking-tight">
+              Privacy by Design · On-Chain Sovereignty
+            </h2>
+          </div>
+          <p className="text-xs sm:text-sm font-mono text-zinc-500 max-w-sm">
+            HelpMesh requires no account signup, collects no personal telemetry, and runs autonomously on Base Sepolia.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-7 sm:p-8 backdrop-blur-sm space-y-4">
+            <div className="size-14 rounded-2xl bg-[#25f497]/10 border border-[#25f497]/30 flex items-center justify-center text-[#25f497]">
+              <Lock className="size-7 stroke-[1.8]" />
+            </div>
+            <h3 className="text-lg font-mono font-medium text-white tracking-tight">
+              100% Private Blockchain State
+            </h3>
+            <p className="text-xs sm:text-sm font-mono text-zinc-400 leading-relaxed">
+              Your assistance requests and escrow allocations execute through open smart contracts. There is no corporate tracking database, no user monetization, and no data harvesting.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-7 sm:p-8 backdrop-blur-sm space-y-4">
+            <div className="size-14 rounded-2xl bg-[#25f497]/10 border border-[#25f497]/30 flex items-center justify-center text-[#25f497]">
+              <Video className="size-7 stroke-[1.8]" />
+            </div>
+            <h3 className="text-lg font-mono font-medium text-white tracking-tight">
+              Direct P2P Call Mode &amp; Live GPS
+            </h3>
+            <p className="text-xs sm:text-sm font-mono text-zinc-400 leading-relaxed">
+              In-app video and audio calls use peer-to-peer WebRTC connections. Packets stream directly between you and your helper with real-time GPS telemetry and zero central recording.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/60 p-7 sm:p-8 backdrop-blur-sm space-y-4">
+            <div className="size-14 rounded-2xl bg-[#25f497]/10 border border-[#25f497]/30 flex items-center justify-center text-[#25f497]">
+              <Mic className="size-7 stroke-[1.8]" />
+            </div>
+            <h3 className="text-lg font-mono font-medium text-white tracking-tight">
+              Voice Controls for Blind &amp; Low Vision
+            </h3>
+            <p className="text-xs sm:text-sm font-mono text-zinc-400 leading-relaxed">
+              Built-in speech recognition assistant (Press Alt+V) and speech synthesis (TTS) provide total hands-free navigation and instant screen announcements for visually impaired users.
+            </p>
+          </div>
         </div>
       </section>
     </div>
