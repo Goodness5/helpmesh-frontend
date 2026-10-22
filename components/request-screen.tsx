@@ -4,7 +4,19 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { useAnnounce } from "@/components/announce"
 import { PageTitle } from "@/components/page-title"
-import { cancel, chat, choose, completeHelp, confirm, dispute, hold, saveTrusted, startHelp, tip, useDemo } from "@/components/demo"
+import {
+  cancel,
+  chat,
+  choose,
+  completeHelp,
+  confirm,
+  dispute,
+  hold,
+  saveTrusted,
+  startHelp,
+  tip,
+  useDemo,
+} from "@/components/demo"
 import { Dialog } from "@/components/dialog"
 import { liveChain } from "@/lib/chain/plain"
 import {
@@ -18,6 +30,24 @@ import {
   personName,
   rankHelpers,
 } from "@/lib/model"
+import {
+  Activity,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  ShieldCheck,
+  MapPin,
+  MessageSquare,
+  Volume2,
+  PhoneCall,
+  ArrowUpRight,
+  User,
+  Heart,
+  BadgeCheck,
+  Check,
+  Send,
+  Lock,
+} from "lucide-react"
 
 const replies = ["I'm here", "I'm at the entrance", "Please wait 2 minutes", "I can't hear you, I'll text"]
 const reasons = ["I don't need help now", "I can't make it", "Something else"]
@@ -56,12 +86,29 @@ export function RequestScreen({ id }: { id: string }) {
     if (previous) announce(line)
   }, [announce, demo.ready, request, statusKey])
 
-  if (!demo.ready) return <PageTitle>Loading this request</PageTitle>
+  if (!demo.ready) {
+    return (
+      <div className="w-full space-y-4 py-8">
+        <PageTitle>Loading this request</PageTitle>
+        <p className="text-sm font-mono text-zinc-500 animate-pulse">Syncing on-chain session...</p>
+      </div>
+    )
+  }
+
   if (!request) {
     return (
-      <div style={{ marginTop: "1.5rem" }}>
-        <PageTitle>We can’t find that request</PageTitle>
-        <p><Link href="/helper" className="btn">See open requests</Link></p>
+      <div className="w-full space-y-6 py-8">
+        <PageTitle>We can&apos;t find that request</PageTitle>
+        <p className="text-sm font-mono text-zinc-400">
+          This session does not exist or may have expired from the active mesh.
+        </p>
+        <Link
+          href="/helper"
+          className="inline-flex items-center gap-2 bg-[#25f497] text-black font-mono font-semibold px-6 py-3 rounded-full hover:bg-[#1ee088] transition-colors"
+        >
+          <span>See open requests</span>
+          <ArrowUpRight className="size-4" />
+        </Link>
       </div>
     )
   }
@@ -97,244 +144,407 @@ export function RequestScreen({ id }: { id: string }) {
   }
 
   return (
-    <>
-      <div style={{ marginTop: "1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-          <p className="kicker" style={{ margin: 0 }}>
-            <span className="status-dot" aria-hidden="true" />
+    <div className="w-full max-w-4xl mx-auto space-y-8 sm:space-y-10 py-6">
+      {/* Header Eyebrow & Status Pill */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/70 text-xs font-mono uppercase tracking-widest text-[#25f497]">
+            <span className="size-2 rounded-full bg-[#25f497] animate-pulse" />
             <span>Active Session · {request.id.slice(0, 10)}</span>
-          </p>
-          <span className="status-pill" style={{ color: "var(--signal)", borderColor: "rgba(37, 244, 151, 0.3)" }}>
+          </div>
+
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-medium bg-[#25f497]/10 text-[#25f497] border border-[#25f497]/30">
             {modeLabel(request.mode, request.amount)}
           </span>
         </div>
 
         <PageTitle>{title}</PageTitle>
+      </div>
 
-        <div className="card" style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>
-          <p className="lede" style={{ fontSize: "1.05rem", margin: "0 0 0.85rem", color: "var(--ink)" }}>
-            {request.description}
+      {/* Main Request Summary Card */}
+      <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-10 backdrop-blur-md shadow-2xl space-y-6">
+        <p className="text-lg sm:text-xl font-mono text-zinc-200 leading-relaxed">
+          {request.description}
+        </p>
+
+        {/* Telemetry Tags */}
+        <div className="flex flex-wrap items-center gap-2.5 text-xs font-mono">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300">
+            <MapPin className="size-3.5 text-[#25f497]" />
+            {request.place || "Public location nearby"}
+          </span>
+
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300">
+            <Clock className="size-3.5 text-[#25f497]" />
+            ~{request.minutes} mins
+          </span>
+
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300">
+            <MessageSquare className="size-3.5 text-[#25f497]" />
+            {request.communicate}
+          </span>
+
+          {request.shareNeeds && request.needsSummary && (
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300">
+              <BadgeCheck className="size-3.5 text-[#25f497]" />
+              {request.needsSummary}
+            </span>
+          )}
+        </div>
+
+        {/* Escrow Banner */}
+        {funds && (
+          <div className="flex items-center gap-3 p-4 rounded-2xl border border-[#25f497]/30 bg-[#25f497]/5 text-xs sm:text-sm font-mono text-zinc-300">
+            <ShieldCheck className="size-5 text-[#25f497] shrink-0" />
+            <div>
+              <strong className="text-white">Escrow: </strong>
+              <span>{funds}</span>
+            </div>
+          </div>
+        )}
+
+        {!request.escrow && request.mode === "volunteer" && (
+          <div className="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 text-xs font-mono text-zinc-400">
+            Volunteer request. Peer-to-peer assistance with zero smart contract locking.
+          </div>
+        )}
+      </div>
+
+      {/* Lock Escrow Prompt if needed */}
+      {!asHelper && request.mode === "reward" && !request.escrow && request.status === "open" && (
+        <div className="rounded-3xl border border-[#25f497]/40 bg-zinc-950/80 p-7 sm:p-9 backdrop-blur-md shadow-2xl space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="size-12 rounded-2xl bg-[#25f497]/10 border border-[#25f497]/30 flex items-center justify-center text-[#25f497]">
+              <Lock className="size-6 stroke-[1.8]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-mono font-medium text-white tracking-tight">
+                Lock Escrow to Begin Matching
+              </h2>
+              <p className="text-xs font-mono text-zinc-500">Autonomous non-custodial lock</p>
+            </div>
+          </div>
+
+          <p className="text-sm font-mono text-zinc-400 leading-relaxed max-w-2xl">
+            Commit {formatTestMoney(request.amount)} in the Base Sepolia escrow contract. Released to your helper only after you confirm completion.
           </p>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.85rem" }}>
-            <span className="status-pill" style={{ background: "var(--surface-raised)" }}>
-              📍 {request.place || "Public location nearby"}
+          <button
+            type="button"
+            onClick={() => setHoldOpen(true)}
+            className="group inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_24px_rgba(37,244,151,0.2)]"
+          >
+            <span>Lock {formatTestMoney(request.amount)} into Escrow</span>
+            <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]">
+              <ArrowUpRight className="size-3 stroke-[2.5]" />
             </span>
-            <span className="status-pill" style={{ background: "var(--surface-raised)" }}>
-              ⏱ ~{request.minutes} mins
-            </span>
-            <span className="status-pill" style={{ background: "var(--surface-raised)" }}>
-              💬 {request.communicate}
-            </span>
-            {request.shareNeeds && request.needsSummary && (
-              <span className="status-pill" style={{ background: "var(--surface-raised)" }}>
-                ♿ {request.needsSummary}
-              </span>
-            )}
-          </div>
-
-          {funds && (
-            <div className="status" style={{ margin: "0.5rem 0 0" }}>
-              <span className="status-dot" style={{ display: "inline-block", marginRight: "0.5rem" }} aria-hidden="true" />
-              <strong>Escrow:</strong> {funds}
-            </div>
-          )}
-          {!request.escrow && request.mode === "volunteer" && (
-            <div className="note" style={{ margin: "0.5rem 0 0" }}>
-              Volunteer request. Peer-to-peer aid with no smart contract lock.
-            </div>
-          )}
+          </button>
         </div>
+      )}
 
-        {!asHelper && request.mode === "reward" && !request.escrow && request.status === "open" && (
-          <div className="card" style={{ marginBottom: "1.5rem", borderColor: "rgba(37, 244, 151, 0.4)" }}>
-            <h2 style={{ marginTop: 0, fontSize: "1.15rem" }}>Lock Escrow to Begin Matching</h2>
-            <p style={{ color: "var(--muted)", fontSize: "0.95rem", marginBottom: "1rem" }}>
-              Hold {formatTestMoney(request.amount)} in the Base Sepolia testnet escrow contract. Released to your helper only after you confirm completion.
-            </p>
-            <button type="button" className="btn primary" onClick={() => setHoldOpen(true)}>
-              <span>Lock {formatTestMoney(request.amount)} into Escrow</span>
-              <span className="btn-arrow-badge" aria-hidden="true">↗</span>
-            </button>
+      {/* Available Helpers List if open */}
+      {!asHelper && request.status === "open" && (request.mode !== "reward" || request.escrow) && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
+            <h2 className="text-xl font-mono font-medium text-white tracking-tight">
+              Available Helpers Nearby
+            </h2>
+            <span className="text-xs font-mono text-zinc-500">
+              {ranked.length} {ranked.length === 1 ? "helper found" : "helpers found"}
+            </span>
           </div>
-        )}
 
-        {!asHelper && request.status === "open" && (request.mode !== "reward" || request.escrow) && (
-          <div style={{ marginBottom: "2rem" }}>
-            <h2>Available Helpers Nearby</h2>
-            {liveChain && (
-              <p className="note">
-                Daniel and Priya are simulated peers on this device. Live peers on their own devices can accept via the Offer feed.
-              </p>
-            )}
-            <ul className="list">
-              {ranked.map(({ helper }) => (
-                <li key={helper.id} className="card" style={{ display: "grid", gap: "0.75rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <div>
-                      <h3 style={{ margin: "0 0 0.2rem", fontSize: "1.15rem" }}>{helper.name}</h3>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                        <span className="status-pill">{distanceText(helper)}</span>
-                        <span className="status-pill">{helper.verified ? "✓ Verified" : "Unverified"}</span>
-                        <span className="status-pill">{helper.completions} completed</span>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                      <Link href={`/profile/${helper.id}`} className="btn quiet" style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>
-                        Profile ↗
-                      </Link>
-                      <button type="button" className="btn primary" onClick={() => run(choose(request.id, helper.id))}>
-                        Choose {helper.name}
-                      </button>
+          {liveChain && (
+            <p className="text-xs font-mono text-zinc-500">
+              Daniel and Priya are simulated peers on this device. Live peers on their own devices can accept via the Offer feed.
+            </p>
+          )}
+
+          <div className="space-y-4">
+            {ranked.map(({ helper }) => (
+              <div
+                key={helper.id}
+                className="rounded-3xl border border-zinc-800/80 bg-zinc-950/70 p-6 sm:p-7 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:border-zinc-700 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="size-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#25f497] shrink-0">
+                    <User className="size-7" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3 className="text-lg font-mono font-medium text-white tracking-tight">
+                      {helper.name}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-zinc-400">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800">
+                        {distanceText(helper)}
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[#25f497]">
+                        {helper.verified ? "✓ Verified" : "Unverified"}
+                      </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800">
+                        {helper.completions} completed
+                      </span>
                     </div>
                   </div>
-                </li>
-              ))}
-            </ul>
+                </div>
+
+                <div className="flex items-center gap-3 self-end sm:self-center">
+                  <Link
+                    href={`/profile/${helper.id}`}
+                    className="inline-flex items-center px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition-colors"
+                  >
+                    <span>Profile</span>
+                    <ArrowUpRight className="size-3 ml-1" />
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => run(choose(request.id, helper.id))}
+                    className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-5 py-2.5 rounded-full text-xs transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span>Choose {helper.name}</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Accept request as helper if open */}
+      {asHelper && request.status === "open" && (
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => run(choose(request.id, "me"))}
+            className="group inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_24px_rgba(37,244,151,0.2)]"
+          >
+            <span>Accept this request</span>
+            <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]">
+              <ArrowUpRight className="size-3 stroke-[2.5]" />
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Primary Lifecycle Actions */}
+      <div className="space-y-4">
+        {asHelper && request.status === "assigned" && (
+          <button
+            type="button"
+            onClick={() => run(startHelp(request.id))}
+            className="inline-flex items-center gap-2.5 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-150 hover:scale-[1.02]"
+          >
+            <Activity className="size-4" />
+            <span>Start helping now</span>
+          </button>
+        )}
+
+        {asHelper && request.status === "started" && (
+          <button
+            type="button"
+            onClick={() => run(completeHelp(request.id))}
+            className="inline-flex items-center gap-2.5 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-150 hover:scale-[1.02]"
+          >
+            <Check className="size-4" />
+            <span>Mark help completed</span>
+          </button>
+        )}
+
+        {!asHelper && request.helperId && request.helperId !== "me" && request.status === "assigned" && (
+          <button
+            type="button"
+            onClick={() => run(startHelp(request.id))}
+            className="inline-flex items-center gap-2.5 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-150 hover:scale-[1.02]"
+          >
+            <Activity className="size-4" />
+            <span>Confirm session started</span>
+          </button>
+        )}
+
+        {!asHelper && request.status === "started" && request.helperId !== "me" && (
+          <button
+            type="button"
+            onClick={() => run(completeHelp(request.id))}
+            className="inline-flex items-center gap-2.5 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-150 hover:scale-[1.02]"
+          >
+            <Check className="size-4" />
+            <span>Mark help completed</span>
+          </button>
+        )}
+
+        {asHelper && request.status === "awaiting_confirm" && (
+          <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-9 space-y-4">
+            <p className="text-sm font-mono text-zinc-300">
+              Waiting for {request.requesterName} to confirm. Escrow tokens stay held until verified completion.
+            </p>
+            <button
+              type="button"
+              onClick={() => run(confirm(request.id))}
+              className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full text-xs"
+            >
+              <span>They confirmed in person</span>
+            </button>
           </div>
         )}
 
-        {asHelper && request.status === "open" && (
-          <div style={{ margin: "1.5rem 0" }}>
-            <button type="button" className="btn primary" onClick={() => run(choose(request.id, "me"))}>
-              <span>Accept this request</span>
-              <span className="btn-arrow-badge" aria-hidden="true">↗</span>
-            </button>
-          </div>
-        )}
-
-        {/* Action controls based on status */}
-        <div style={{ margin: "1.5rem 0" }}>
-          {asHelper && request.status === "assigned" && (
-            <button type="button" className="btn primary" onClick={() => run(startHelp(request.id))}>
-              Start helping now
-            </button>
-          )}
-          {asHelper && request.status === "started" && (
-            <button type="button" className="btn primary" onClick={() => run(completeHelp(request.id))}>
-              Mark help completed
-            </button>
-          )}
-
-          {!asHelper && request.helperId && request.helperId !== "me" && request.status === "assigned" && (
-            <button type="button" className="btn primary" onClick={() => run(startHelp(request.id))}>
-              Confirm session started
-            </button>
-          )}
-          {!asHelper && request.status === "started" && request.helperId !== "me" && (
-            <button type="button" className="btn primary" onClick={() => run(completeHelp(request.id))}>
-              Mark help completed
-            </button>
-          )}
-
-          {asHelper && request.status === "awaiting_confirm" && (
-            <div className="card" style={{ marginBottom: "1rem" }}>
-              <p className="note" style={{ margin: "0 0 1rem" }}>
-                Waiting for {request.requesterName} to confirm. The escrow tokens stay held until then.
-              </p>
-              <button type="button" className="btn primary" onClick={() => run(confirm(request.id))}>
-                They confirmed in person
-              </button>
-            </div>
-          )}
-
-          {!asHelper && request.status === "awaiting_confirm" && (
-            <div className="card" style={{ marginBottom: "1rem" }}>
-              <h2 style={{ marginTop: 0, fontSize: "1.2rem" }}>Did you receive the assistance needed?</h2>
-              <p style={{ color: "var(--muted)", fontSize: "0.925rem", marginBottom: "1rem" }}>
-                Confirming will trigger autonomous escrow release of {formatTestMoney(request.amount)} to {shownHelper}.
-              </p>
-              <div className="row">
-                <button type="button" className="btn primary" onClick={() => setConfirmOpen(true)}>
-                  Yes, release escrow
-                </button>
-                <button type="button" className="btn danger" onClick={() => setProblemOpen(true)}>
-                  Report a problem
-                </button>
+        {!asHelper && request.status === "awaiting_confirm" && (
+          <div className="rounded-3xl border border-[#25f497]/40 bg-zinc-950/90 p-7 sm:p-9 space-y-5 shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className="size-12 rounded-2xl bg-[#25f497]/15 border border-[#25f497]/30 flex items-center justify-center text-[#25f497]">
+                <CheckCircle2 className="size-7" />
+              </div>
+              <div>
+                <h2 className="text-xl font-mono font-medium text-white tracking-tight">
+                  Did you receive the assistance needed?
+                </h2>
+                <p className="text-xs font-mono text-zinc-500">
+                  Confirming will trigger autonomous escrow release of {formatTestMoney(request.amount)} to {shownHelper}.
+                </p>
               </div>
             </div>
-          )}
-        </div>
 
-        {request.status === "done" && !asHelper && request.helperId && (
-          <section className="card" style={{ marginBottom: "2rem" }}>
-            <h2 style={{ marginTop: 0, fontSize: "1.2rem" }}>Send a Gratuity (Optional)</h2>
-            <p style={{ color: "var(--muted)", fontSize: "0.925rem", marginBottom: "1rem" }}>
-              Tips do not affect helper reputation scores. Balances transfer directly to the helper&apos;s account.
-            </p>
-            <div className="chips" style={{ marginBottom: "1rem" }}>
-              {[2, 5, 10].map((dollars) => (
-                <button key={dollars} type="button" onClick={() => setTipAmount(dollars * 1_000_000)}>
-                  ${dollars} tip
-                </button>
-              ))}
-              <button type="button" className="btn quiet" onClick={() => run("No tip. That is fine.")}>
-                Skip
-              </button>
-            </div>
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-              <input
-                id="custom-tip"
-                style={{ maxWidth: "160px" }}
-                inputMode="decimal"
-                value={customTip}
-                onChange={(event) => setCustomTip(event.target.value)}
-                placeholder="Custom $"
-                aria-label="Custom tip amount"
-              />
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
-                className="btn"
-                onClick={() => {
-                  const amount = parseAmount(customTip)
-                  if (!amount) {
-                    run("Enter an amount like 4 or 4.50.")
-                    return
-                  }
-                  setTipAmount(amount)
-                }}
+                onClick={() => setConfirmOpen(true)}
+                className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full text-sm transition-all duration-150 hover:scale-[1.02]"
               >
-                Send custom tip
+                <span>Yes, release escrow</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setProblemOpen(true)}
+                className="inline-flex items-center gap-2 border border-red-500/40 bg-red-950/30 hover:bg-red-950/60 text-red-300 font-mono text-sm px-6 py-3.5 rounded-full transition-colors"
+              >
+                <span>Report a problem</span>
               </button>
             </div>
-          </section>
-        )}
-
-        {request.status === "disputed" && (
-          <div className="status warn" style={{ marginBottom: "1.5rem" }}>
-            <strong>Dispute Under Review:</strong> An independent community reviewer has been assigned. The escrow amount remains locked until resolved.
           </div>
         )}
+      </div>
 
-        {active && (
-          <div style={{ display: "grid", gap: "1.5rem", marginBottom: "2rem" }}>
-            <div className="card">
-              <h2 style={{ marginTop: 0, fontSize: "1.15rem" }}>Live Peer Messaging</h2>
-              {request.messages.length === 0 ? (
-                <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>No messages yet. Send a quick update below.</p>
-              ) : (
-                <ul className="list" style={{ marginBottom: "1rem" }}>
-                  {request.messages.map((message, index) => (
-                    <li
-                      key={`${message.body}-${index}`}
-                      style={{
-                        padding: "0.6rem 0.9rem",
-                        background: message.from === "You" ? "var(--surface-raised)" : "var(--soft)",
-                        borderColor: message.from === "You" ? "var(--signal)" : "var(--line)",
-                        fontSize: "0.9rem",
-                      }}
-                    >
-                      <strong style={{ color: message.from === "You" ? "var(--signal)" : "var(--ink)" }}>{message.from}: </strong>
-                      {message.body}
-                    </li>
-                  ))}
-                </ul>
-              )}
+      {/* Gratuity Section on Done */}
+      {request.status === "done" && !asHelper && request.helperId && (
+        <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-9 backdrop-blur-sm space-y-6">
+          <div className="flex items-center gap-3 border-b border-zinc-900 pb-5">
+            <div className="size-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#25f497]">
+              <Heart className="size-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-mono font-medium text-white tracking-tight">
+                Send a Gratuity (Optional)
+              </h2>
+              <p className="text-xs font-mono text-zinc-500">
+                Tips transfer directly to the helper&apos;s wallet balance.
+              </p>
+            </div>
+          </div>
 
-              <span style={{ fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+          <div className="flex flex-wrap items-center gap-3">
+            {[2, 5, 10].map((dollars) => (
+              <button
+                key={dollars}
+                type="button"
+                onClick={() => setTipAmount(dollars * 1_000_000)}
+                className="px-5 py-2.5 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-200 font-mono text-xs transition-colors"
+              >
+                ${dollars} tip
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => run("No tip. That is fine.")}
+              className="px-4 py-2 text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              Skip
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 max-w-sm">
+            <input
+              id="custom-tip"
+              inputMode="decimal"
+              value={customTip}
+              onChange={(event) => setCustomTip(event.target.value)}
+              placeholder="Custom $"
+              aria-label="Custom tip amount"
+              className="w-36 bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 font-mono text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#25f497]"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const amount = parseAmount(customTip)
+                if (!amount) {
+                  run("Enter an amount like 4 or 4.50.")
+                  return
+                }
+                setTipAmount(amount)
+              }}
+              className="px-5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-mono text-xs transition-colors"
+            >
+              Send custom tip
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Dispute Notice if disputed */}
+      {request.status === "disputed" && (
+        <div className="rounded-3xl border border-red-500/40 bg-red-950/30 p-6 sm:p-7 flex items-start gap-4">
+          <AlertTriangle className="size-6 text-red-400 shrink-0 mt-0.5" />
+          <div className="space-y-1 font-mono text-sm text-red-200">
+            <strong className="block text-red-300">Dispute Under Review:</strong>
+            <p>
+              An independent community reviewer has been assigned. The escrow amount remains locked until resolved.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Active Session Coordination Tools */}
+      {active && (
+        <div className="space-y-6">
+          {/* Messaging Card */}
+          <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-9 backdrop-blur-sm space-y-6">
+            <div className="flex items-center gap-3 border-b border-zinc-900 pb-5">
+              <div className="size-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#25f497]">
+                <MessageSquare className="size-5" />
+              </div>
+              <h2 className="text-xl font-mono font-medium text-white tracking-tight">
+                Live Peer Messaging
+              </h2>
+            </div>
+
+            {request.messages.length === 0 ? (
+              <p className="text-xs font-mono text-zinc-500">
+                No messages yet. Send a quick update below.
+              </p>
+            ) : (
+              <div className="space-y-2.5 max-h-64 overflow-y-auto">
+                {request.messages.map((message, index) => (
+                  <div
+                    key={`${message.body}-${index}`}
+                    className={`p-3.5 rounded-2xl font-mono text-xs sm:text-sm max-w-[85%] ${
+                      message.from === "You"
+                        ? "ml-auto bg-[#25f497]/15 border border-[#25f497]/30 text-zinc-100"
+                        : "mr-auto bg-zinc-900 border border-zinc-800 text-zinc-200"
+                    }`}
+                  >
+                    <strong className={message.from === "You" ? "text-[#25f497]" : "text-zinc-400"}>
+                      {message.from}:{" "}
+                    </strong>
+                    <span>{message.body}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-3 pt-2">
+              <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
                 Quick Responses
               </span>
-              <div className="chips" style={{ margin: "0.4rem 0 1rem" }}>
+              <div className="flex flex-wrap gap-2">
                 {replies.map((reply) => (
                   <button
                     key={reply}
@@ -343,246 +553,331 @@ export function RequestScreen({ id }: { id: string }) {
                       chat(request.id, asHelper ? "Helper" : "You", reply)
                       run(`Sent: ${reply}`)
                     }}
+                    className="px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition-colors"
                   >
                     {reply}
                   </button>
                 ))}
               </div>
-
-              <div className="row">
-                <button type="button" className="btn quiet" onClick={() => say(replies[0] ?? "I'm here")}>
-                  🔊 Speak &ldquo;I&apos;m here&rdquo;
-                </button>
-                <button type="button" className="btn" onClick={() => setCardOpen(true)}>
-                  📱 {asHelper ? "Show identification card" : "Show card to helper"}
-                </button>
-              </div>
             </div>
 
-            {request.status === "started" && (
-              <div className="card">
-                <h2 style={{ marginTop: 0, fontSize: "1.15rem" }}>Session Check-In</h2>
-                <p style={{ color: "var(--muted)", fontSize: "0.9rem", marginBottom: "0.85rem" }}>
-                  Estimated at ~{request.minutes} minutes. Tap to confirm you are safe.
-                </p>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{ borderColor: checkedIn ? "var(--signal)" : "var(--line)" }}
-                  onClick={() => {
-                    setCheckedIn(true)
-                    run("Checked in. Status is OK.")
-                  }}
-                >
-                  {checkedIn ? "✓ Checked in: You are OK" : "I'm OK"}
-                </button>
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-zinc-900">
+              <button
+                type="button"
+                onClick={() => say(replies[0] ?? "I'm here")}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition-colors"
+              >
+                <Volume2 className="size-3.5 text-[#25f497]" />
+                <span>Speak &ldquo;I&apos;m here&rdquo;</span>
+              </button>
 
-            <div className="card" style={{ borderColor: "rgba(248, 113, 113, 0.3)" }}>
-              <h2 style={{ marginTop: 0, fontSize: "1.15rem", color: "var(--danger)" }}>Emergency &amp; Safety SOS</h2>
-              <div className="row" style={{ marginBottom: "1rem" }}>
-                <a className="btn danger" href="tel:911">
-                  Call 911
-                </a>
-                <a
-                  className="btn"
-                  href={`sms:?&body=${encodeURIComponent(`${demo.trustedName ? `${demo.trustedName}, ` : ""}I need help now. ${request.description}`)}`}
-                >
-                  Text trusted contact
-                </a>
-                <Link className="btn quiet" href="/help">
-                  Platform safety
-                </Link>
-              </div>
-              <TrustedName />
+              <button
+                type="button"
+                onClick={() => setCardOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition-colors"
+              >
+                <BadgeCheck className="size-3.5 text-[#25f497]" />
+                <span>{asHelper ? "Show identification card" : "Show card to helper"}</span>
+              </button>
             </div>
           </div>
-        )}
 
-        <div style={{ margin: "1.5rem 0" }}>
-          {(request.status === "open" || request.status === "assigned") && (
-            <button type="button" className="btn quiet" onClick={() => setCancelOpen(true)}>
-              Cancel this request
-            </button>
-          )}
+          {/* Session Safety Check-in if started */}
           {request.status === "started" && (
-            <button type="button" className="btn danger" onClick={() => setProblemOpen(true)}>
-              Report a problem
-            </button>
-          )}
-        </div>
-
-        <h2>Audit Trail &amp; Events</h2>
-        <div className="card" style={{ padding: "1.25rem 1.5rem", marginBottom: "2rem" }}>
-          <ol className="timeline" style={{ margin: 0 }}>
-            {request.events.map((event, idx) => (
-              <li key={`${event}-${idx}`}>{event}</li>
-            ))}
-          </ol>
-        </div>
-
-        {/* Dialogs */}
-        <Dialog
-          open={holdOpen}
-          title={`Lock ${formatTestMoney(request.amount)} in Escrow`}
-          description={`This commits ${formatTestMoney(request.amount)} of test USDC to the escrow contract. It will be released to the helper upon confirmation. Escape cancels.`}
-          onClose={() => setHoldOpen(false)}
-        >
-          <div className="row" style={{ marginTop: "1.25rem" }}>
-            <button
-              type="button"
-              className="btn primary"
-              onClick={() => {
-                setHoldOpen(false)
-                run(hold(request.id))
-              }}
-            >
-              Confirm Escrow Lock
-            </button>
-            <button type="button" className="btn quiet" onClick={() => setHoldOpen(false)}>
-              Go back
-            </button>
-          </div>
-        </Dialog>
-
-        <Dialog
-          open={confirmOpen}
-          title="Confirm assistance completed"
-          description={
-            request.escrow
-              ? `${formatTestMoney(request.amount)} will be released from escrow to ${shownHelper}.`
-              : "No tokens move. This records successful verified completion."
-          }
-          onClose={() => setConfirmOpen(false)}
-        >
-          <div className="row" style={{ marginTop: "1.25rem" }}>
-            <button
-              type="button"
-              className="btn primary"
-              onClick={() => {
-                setConfirmOpen(false)
-                run(confirm(request.id))
-              }}
-            >
-              {request.escrow ? "Yes, Release & Settle" : "Yes, Complete Session"}
-            </button>
-            <button type="button" className="btn quiet" onClick={() => setConfirmOpen(false)}>
-              Go back
-            </button>
-          </div>
-        </Dialog>
-
-        <Dialog
-          open={problemOpen}
-          title="Initiate dispute resolution"
-          description="Tokens stay locked in escrow while an independent reviewer investigates the situation."
-          onClose={() => setProblemOpen(false)}
-        >
-          <div className="row" style={{ marginTop: "1.25rem" }}>
-            <button
-              type="button"
-              className="btn danger"
-              onClick={() => {
-                setProblemOpen(false)
-                run(dispute(request.id), true)
-              }}
-            >
-              File dispute report
-            </button>
-            <button type="button" className="btn quiet" onClick={() => setProblemOpen(false)}>
-              Go back
-            </button>
-          </div>
-        </Dialog>
-
-        <Dialog
-          open={cancelOpen}
-          title="Cancel request"
-          description={
-            request.escrow?.source === "pool"
-              ? "The sponsored grant returns immediately to the Accessibility Fund pool."
-              : request.escrow
-              ? "The locked escrow tokens return immediately to your balance."
-              : "No tokens are locked."
-          }
-          onClose={() => setCancelOpen(false)}
-        >
-          <fieldset style={{ marginTop: "1rem" }}>
-            <legend style={{ marginBottom: "0.5rem" }}>Cancellation Reason</legend>
-            <div className="chips">
-              {reasons.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  aria-pressed={reason === item}
-                  onClick={() => setReason(item)}
-                >
-                  {item}
-                </button>
-              ))}
+            <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-9 space-y-4">
+              <h2 className="text-xl font-mono font-medium text-white tracking-tight">
+                Session Safety Check-In
+              </h2>
+              <p className="text-xs font-mono text-zinc-400">
+                Estimated duration ~{request.minutes} minutes. Tap to confirm your safety status.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setCheckedIn(true)
+                  run("Checked in. Status is OK.")
+                }}
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono text-xs transition-all ${
+                  checkedIn
+                    ? "bg-[#25f497] text-black font-semibold"
+                    : "border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
+                }`}
+              >
+                {checkedIn ? <Check className="size-4" /> : null}
+                <span>{checkedIn ? "Checked in: Status OK" : "I'm OK"}</span>
+              </button>
             </div>
-          </fieldset>
-          <div className="row" style={{ marginTop: "1.25rem" }}>
+          )}
+
+          {/* Emergency & SOS Card */}
+          <div className="rounded-3xl border border-red-500/30 bg-red-950/20 p-7 sm:p-9 space-y-5">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="size-5 text-red-400" />
+              <h2 className="text-xl font-mono font-medium text-red-300 tracking-tight">
+                Emergency &amp; Safety SOS
+              </h2>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href="tel:911"
+                className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-400 text-black font-mono font-bold px-6 py-3 rounded-full text-xs transition-colors"
+              >
+                <PhoneCall className="size-3.5" />
+                <span>Call 911</span>
+              </a>
+
+              <a
+                href={`sms:?&body=${encodeURIComponent(
+                  `${demo.trustedName ? `${demo.trustedName}, ` : ""}I need help now. ${request.description}`
+                )}`}
+                className="inline-flex items-center gap-2 border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 font-mono text-xs px-5 py-3 rounded-full transition-colors"
+              >
+                <Send className="size-3.5" />
+                <span>Text trusted contact</span>
+              </a>
+
+              <Link
+                href="/help"
+                className="text-xs font-mono text-zinc-400 hover:text-white underline ml-2"
+              >
+                Safety Guidelines
+              </Link>
+            </div>
+
+            <TrustedName />
+          </div>
+        </div>
+      )}
+
+      {/* Cancellation & Dispute Buttons */}
+      <div className="flex flex-wrap items-center gap-3 pt-2">
+        {(request.status === "open" || request.status === "assigned") && (
+          <button
+            type="button"
+            onClick={() => setCancelOpen(true)}
+            className="text-xs font-mono text-zinc-500 hover:text-red-400 underline transition-colors"
+          >
+            Cancel this request
+          </button>
+        )}
+        {request.status === "started" && (
+          <button
+            type="button"
+            onClick={() => setProblemOpen(true)}
+            className="text-xs font-mono text-red-400 hover:text-red-300 underline transition-colors"
+          >
+            Report a problem
+          </button>
+        )}
+      </div>
+
+      {/* Audit Trail & Event Log */}
+      <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/60 p-7 sm:p-9 space-y-4">
+        <h2 className="text-lg font-mono font-medium text-white tracking-tight border-b border-zinc-900 pb-3">
+          Audit Trail &amp; Events
+        </h2>
+        <ol className="space-y-2.5 font-mono text-xs text-zinc-400">
+          {request.events.map((event, idx) => (
+            <li key={`${event}-${idx}`} className="flex items-center gap-2.5">
+              <span className="size-1.5 rounded-full bg-[#25f497]" />
+              <span>{event}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Dialogs */}
+      <Dialog
+        open={holdOpen}
+        title={`Lock ${formatTestMoney(request.amount)} in Escrow`}
+        description={`This commits ${formatTestMoney(request.amount)} of test USDC to the escrow contract. It will be released to the helper upon confirmation. Escape cancels.`}
+        onClose={() => setHoldOpen(false)}
+      >
+        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-zinc-900">
+          <button
+            type="button"
+            onClick={() => {
+              setHoldOpen(false)
+              run(hold(request.id))
+            }}
+            className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full text-xs"
+          >
+            Confirm Escrow Lock
+          </button>
+          <button
+            type="button"
+            onClick={() => setHoldOpen(false)}
+            className="px-5 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-300 font-mono text-xs"
+          >
+            Go back
+          </button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={confirmOpen}
+        title="Confirm assistance completed"
+        description={
+          request.escrow
+            ? `${formatTestMoney(request.amount)} will be released from escrow to ${shownHelper}.`
+            : "No tokens move. This records successful verified completion."
+        }
+        onClose={() => setConfirmOpen(false)}
+      >
+        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-zinc-900">
+          <button
+            type="button"
+            onClick={() => {
+              setConfirmOpen(false)
+              run(confirm(request.id))
+            }}
+            className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full text-xs"
+          >
+            {request.escrow ? "Yes, Release & Settle" : "Yes, Complete Session"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(false)}
+            className="px-5 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-300 font-mono text-xs"
+          >
+            Go back
+          </button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={problemOpen}
+        title="Initiate dispute resolution"
+        description="Tokens stay locked in escrow while an independent reviewer investigates the situation."
+        onClose={() => setProblemOpen(false)}
+      >
+        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-zinc-900">
+          <button
+            type="button"
+            onClick={() => {
+              setProblemOpen(false)
+              run(dispute(request.id), true)
+            }}
+            className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-400 text-black font-mono font-bold px-6 py-3 rounded-full text-xs"
+          >
+            File dispute report
+          </button>
+          <button
+            type="button"
+            onClick={() => setProblemOpen(false)}
+            className="px-5 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-300 font-mono text-xs"
+          >
+            Go back
+          </button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={cancelOpen}
+        title="Cancel request"
+        description={
+          request.escrow?.source === "pool"
+            ? "The sponsored grant returns immediately to the Accessibility Fund pool."
+            : request.escrow
+            ? "The locked escrow tokens return immediately to your balance."
+            : "No tokens are locked."
+        }
+        onClose={() => setCancelOpen(false)}
+      >
+        <div className="space-y-4 pt-2">
+          <span className="block text-xs font-mono uppercase tracking-widest text-zinc-400">
+            Cancellation Reason
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {reasons.map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={reason === item}
+                onClick={() => setReason(item)}
+                className={`px-4 py-1.5 rounded-full font-mono text-xs transition-colors ${
+                  reason === item
+                    ? "bg-[#25f497] text-black font-semibold"
+                    : "border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-zinc-900">
             <button
               type="button"
-              className="btn danger"
               onClick={() => {
                 setCancelOpen(false)
                 run(cancel(request.id, reason))
               }}
+              className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-400 text-black font-mono font-bold px-6 py-3 rounded-full text-xs"
             >
               Cancel request
             </button>
-            <button type="button" className="btn quiet" onClick={() => setCancelOpen(false)}>
+            <button
+              type="button"
+              onClick={() => setCancelOpen(false)}
+              className="px-5 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-300 font-mono text-xs"
+            >
               Keep request
             </button>
           </div>
-        </Dialog>
+        </div>
+      </Dialog>
 
-        <Dialog
-          open={cardOpen}
-          title={asHelper ? "Identification Card" : "Assistance Card"}
-          description="High-contrast display card to present to your peer in person."
-          onClose={() => setCardOpen(false)}
+      <Dialog
+        open={cardOpen}
+        title={asHelper ? "Identification Card" : "Assistance Card"}
+        description="High-contrast display card to present to your peer in person."
+        onClose={() => setCardOpen(false)}
+      >
+        <div className="p-6 rounded-2xl border border-[#25f497]/40 bg-black text-center space-y-4 my-4">
+          <p className="text-xl font-mono text-white font-medium">{request.description}</p>
+          <p className="text-lg font-mono text-[#25f497]">
+            Communicate by: {request.communicate}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCardOpen(false)}
+          className="w-full bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold py-3 rounded-full text-xs"
         >
-          <div className="preview" style={{ margin: "1rem 0" }}>
-            <p className="show-card" style={{ margin: "0 0 0.5rem" }}>{request.description}</p>
-            <p className="show-card" style={{ fontSize: "1.3rem", color: "var(--signal)" }}>
-              Communicate by: {request.communicate}
-            </p>
-          </div>
-          <button type="button" className="btn primary" onClick={() => setCardOpen(false)}>
-            Close Card
+          Close Card
+        </button>
+      </Dialog>
+
+      <Dialog
+        open={tipAmount !== null}
+        title={tipAmount ? `Send ${formatTestMoney(tipAmount)} Gratuity to ${shownHelper}` : "Send a tip"}
+        description="This gratuity transfers directly to the helper. It is independent of reputation scoring."
+        onClose={() => setTipAmount(null)}
+      >
+        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-zinc-900">
+          <button
+            type="button"
+            onClick={() => {
+              if (!tipAmount || !request.helperId) return
+              const amount = tipAmount
+              setTipAmount(null)
+              run(tip(request.helperId, amount, request.id))
+            }}
+            className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full text-xs"
+          >
+            Confirm Gratuity
           </button>
-        </Dialog>
-
-        <Dialog
-          open={tipAmount !== null}
-          title={tipAmount ? `Send ${formatTestMoney(tipAmount)} Gratuity to ${shownHelper}` : "Send a tip"}
-          description="This gratuity transfers directly to the helper. It is independent of reputation scoring."
-          onClose={() => setTipAmount(null)}
-        >
-          <div className="row" style={{ marginTop: "1.25rem" }}>
-            <button
-              type="button"
-              className="btn primary"
-              onClick={() => {
-                if (!tipAmount || !request.helperId) return
-                const amount = tipAmount
-                setTipAmount(null)
-                run(tip(request.helperId, amount, request.id))
-              }}
-            >
-              Confirm Gratuity
-            </button>
-            <button type="button" className="btn quiet" onClick={() => setTipAmount(null)}>
-              Go back
-            </button>
-          </div>
-        </Dialog>
-      </div>
-    </>
+          <button
+            type="button"
+            onClick={() => setTipAmount(null)}
+            className="px-5 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 text-zinc-300 font-mono text-xs"
+          >
+            Go back
+          </button>
+        </div>
+      </Dialog>
+    </div>
   )
 }
 
@@ -592,8 +887,7 @@ function TrustedName() {
 
   return (
     <form
-      className="field"
-      style={{ marginTop: "1rem" }}
+      className="space-y-2 pt-2 border-t border-red-500/20"
       onSubmit={(event) => {
         event.preventDefault()
         const name = demo.trustedName.trim()
@@ -601,17 +895,22 @@ function TrustedName() {
         announce(name ? `Saved ${name}.` : "Cleared the trusted person.")
       }}
     >
-      <label htmlFor="trusted">Trusted contact name (for quick emergency SMS)</label>
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+      <label htmlFor="trusted" className="block text-xs font-mono text-zinc-300">
+        Trusted contact name (for quick emergency SMS)
+      </label>
+      <div className="flex flex-col sm:flex-row gap-2.5">
         <input
           id="trusted"
-          style={{ flex: "1 1 200px" }}
           autoComplete="name"
           value={demo.trustedName}
           onChange={(event) => saveTrusted(event.target.value)}
           placeholder="e.g. Maria or Alex"
+          className="flex-1 bg-zinc-900/90 border border-zinc-800 rounded-xl px-4 py-2 font-mono text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#25f497]"
         />
-        <button type="submit" className="btn" style={{ flex: "0 0 auto" }}>
+        <button
+          type="submit"
+          className="px-5 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-mono text-xs transition-colors shrink-0"
+        >
           Save name
         </button>
       </div>

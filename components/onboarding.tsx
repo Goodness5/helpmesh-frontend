@@ -7,6 +7,7 @@ import { PageTitle } from "@/components/page-title"
 import { saveProfile, useDemo } from "@/components/demo"
 import { PrefsFields, usePrefs } from "@/components/prefs-fields"
 import { applyPrefs } from "@/lib/prefs"
+import { Users, HeartHandshake, Sparkles, ArrowRight, ArrowLeft, Check } from "lucide-react"
 
 const disabilities = [
   ["blind", "Blind"],
@@ -33,10 +34,9 @@ export function Onboarding() {
   const demo = useDemo()
   if (!demo.ready) {
     return (
-      <div style={{ marginTop: "1.5rem" }}>
-        <p className="steps">Setup Flow · Initializing</p>
+      <div className="w-full space-y-4 py-8">
         <PageTitle>How will you use HelpMesh?</PageTitle>
-        <p className="lede">Loading profile state...</p>
+        <p className="text-sm font-mono text-zinc-500 animate-pulse">Initializing preferences...</p>
       </div>
     )
   }
@@ -71,164 +71,226 @@ function OnboardingForm() {
   }
 
   return (
-    <div style={{ marginTop: "1.5rem" }}>
-      {/* Progress pill indicator */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.85rem" }}>
-        <span className="status-pill" style={{ color: "var(--signal)", borderColor: "rgba(37, 244, 151, 0.4)" }}>
+    <div className="w-full max-w-3xl mx-auto space-y-8 sm:space-y-10 py-6">
+      {/* Progress Pill Indicator */}
+      <div className="flex items-center gap-3">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-medium bg-[#25f497]/15 text-[#25f497] border border-[#25f497]/30">
           Step {step} of 3
         </span>
-        <span style={{ fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+        <span className="text-xs font-mono uppercase tracking-widest text-zinc-500 font-semibold">
           {step === 1 ? "Role Preference" : step === 2 ? "Accessibility & Notes" : "Display Appearance"}
         </span>
       </div>
 
       {step === 1 && (
-        <>
-          <PageTitle>How will you use HelpMesh?</PageTitle>
-          <p className="lede">Select your primary mode. All features and screens remain accessible regardless of your choice.</p>
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <PageTitle>How will you use HelpMesh?</PageTitle>
+            <p className="text-sm sm:text-base font-mono text-zinc-400 max-w-2xl leading-relaxed">
+              Select your primary mode. All features and screens remain accessible regardless of your choice.
+            </p>
+          </div>
 
-          <fieldset style={{ border: 0, padding: 0, margin: "1rem 0 1.5rem" }}>
-            <legend className="steps" style={{ marginBottom: "0.6rem" }}>Choose Primary Role</legend>
-            <div className="stack">
-              {([
-                ["help", "I need assistance", "Post requests for guidance, stairs, errands, or mobility support"],
-                ["helper", "I want to offer help", "Browse nearby peer requests and accept sessions when available"],
-                ["fund", "I want to fund help", "Sponsor community accessibility grants with decentralized donations"],
-              ] as const).map(([value, label, desc]) => (
+          <div className="space-y-4">
+            {([
+              ["help", "I need assistance", "Post requests for guidance, stairs, errands, or mobility support", Users],
+              ["helper", "I want to offer help", "Browse nearby peer requests and accept sessions when available", HeartHandshake],
+              ["fund", "I want to fund help", "Sponsor community accessibility grants with decentralized donations", Sparkles],
+            ] as const).map(([value, label, desc, Icon]) => {
+              const active = role === value
+              return (
                 <label
                   key={value}
-                  className="choice"
-                  style={{
-                    cursor: "pointer",
-                    borderColor: role === value ? "var(--signal)" : "var(--line)",
-                    background: role === value ? "var(--surface-raised)" : "var(--surface)",
-                    boxShadow: role === value ? "0 0 16px -4px var(--accent-glow)" : "none",
-                  }}
+                  className={`flex items-start gap-5 p-6 rounded-3xl border cursor-pointer font-mono transition-all duration-150 ${
+                    active
+                      ? "border-[#25f497] bg-zinc-900/80 shadow-[0_0_24px_rgba(37,244,151,0.12)]"
+                      : "border-zinc-800 bg-zinc-950/70 hover:border-zinc-700 hover:bg-zinc-900/40"
+                  }`}
                 >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
-                    <input
-                      type="radio"
-                      name="role"
-                      value={value}
-                      checked={role === value}
-                      onChange={() => setRole(value)}
-                      style={{ marginTop: "0.25rem" }}
-                    />
-                    <div>
-                      <strong>{label}</strong>
-                      <div style={{ fontSize: "0.85rem", color: "var(--muted)", marginTop: "0.15rem" }}>{desc}</div>
+                  <div className="size-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#25f497] shrink-0">
+                    <Icon className="size-7" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-base text-white font-medium">{label}</strong>
+                      <input
+                        type="radio"
+                        name="role"
+                        value={value}
+                        checked={active}
+                        onChange={() => setRole(value)}
+                        className="accent-[#25f497] size-4"
+                      />
                     </div>
+                    <p className="text-xs sm:text-sm text-zinc-400 leading-normal">{desc}</p>
                   </div>
                 </label>
-              ))}
-            </div>
-          </fieldset>
+              )
+            })}
+          </div>
 
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => {
-              if (role) setStep(2)
-              else announce("Choose one to continue.")
-            }}
-          >
-            <span>Continue</span>
-            <span className="btn-arrow-badge" aria-hidden="true">→</span>
-          </button>
-        </>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (role) setStep(2)
+                else announce("Choose one to continue.")
+              }}
+              className="group inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_24px_rgba(37,244,151,0.2)]"
+            >
+              <span>Continue</span>
+              <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]">
+                <ArrowRight className="size-3 stroke-[2.5]" />
+              </span>
+            </button>
+          </div>
+        </div>
       )}
 
       {step === 2 && (
-        <>
-          <PageTitle>What should a helper know?</PageTitle>
-          <p className="lede">
-            Optional context to improve coordination. You control what is shared upon mutual match.
-          </p>
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <PageTitle>What should a helper know?</PageTitle>
+            <p className="text-sm sm:text-base font-mono text-zinc-400 max-w-2xl leading-relaxed">
+              Optional context to improve coordination. You control what is shared upon mutual match.
+            </p>
+          </div>
 
-          <div className="card" style={{ marginBottom: "1.25rem" }}>
-            <span className="steps">Assistance Needs or Situations</span>
-            <div className="chips" style={{ margin: "0.6rem 0 1rem" }}>
-              {disabilities.map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={picked.includes(value)}
-                  onClick={() => toggle(picked, value, setPicked)}
-                >
-                  {label}
-                </button>
-              ))}
+          <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-9 backdrop-blur-md space-y-6">
+            <div className="space-y-3">
+              <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
+                Assistance Needs or Situations
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {disabilities.map(([value, label]) => {
+                  const active = picked.includes(value)
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggle(picked, value, setPicked)}
+                      className={`px-4 py-2 rounded-full font-mono text-xs transition-colors ${
+                        active
+                          ? "bg-[#25f497] text-black font-semibold"
+                          : "border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            <span className="steps">Preferred Communication Channels</span>
-            <div className="chips" style={{ margin: "0.6rem 0 1rem" }}>
-              {channels.map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={channelsOn.includes(value)}
-                  onClick={() => toggle(channelsOn, value, setChannelsOn)}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="space-y-3 pt-2 border-t border-zinc-900">
+              <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
+                Preferred Communication Channels
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {channels.map(([value, label]) => {
+                  const active = channelsOn.includes(value)
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggle(channelsOn, value, setChannelsOn)}
+                      className={`px-4 py-2 rounded-full font-mono text-xs transition-colors ${
+                        active
+                          ? "bg-[#25f497] text-black font-semibold"
+                          : "border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            <label className="field" style={{ marginTop: "0.5rem" }}>
-              <span>Additional notes for your matched helper</span>
+            <div className="space-y-2 pt-2 border-t border-zinc-900">
+              <label htmlFor="notes" className="block text-xs font-mono uppercase tracking-widest text-zinc-400">
+                Additional notes for your matched helper
+              </label>
               <textarea
+                id="notes"
+                rows={3}
                 value={needs}
                 onChange={(event) => setNeeds(event.target.value)}
                 placeholder="e.g. Please speak clearly into my left ear, or meet at street level..."
+                className="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl p-4 font-mono text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#25f497] transition-colors"
               />
-            </label>
+            </div>
 
-            <label className="row" style={{ marginTop: "0.5rem" }}>
+            <label className="flex items-center gap-3 cursor-pointer text-xs font-mono text-zinc-300 hover:text-white pt-2">
               <input
                 type="checkbox"
                 checked={share}
                 onChange={(event) => setShare(event.target.checked)}
+                className="accent-[#25f497] size-4 rounded"
               />
               <span>Automatically share this note with matched helpers</span>
             </label>
           </div>
 
-          <div className="row">
-            <button type="button" className="btn primary" onClick={() => setStep(3)}>
-              <span>Continue to Display</span>
-              <span className="btn-arrow-badge" aria-hidden="true">→</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-4">
             <button
               type="button"
-              className="btn quiet"
-              onClick={() => {
-                setPicked([])
-                setChannelsOn([])
-                setNeeds("")
-                setShare(false)
-                setStep(3)
-              }}
+              onClick={() => setStep(3)}
+              className="group inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_24px_rgba(37,244,151,0.2)]"
             >
-              Skip this step
+              <span>Continue to Display</span>
+              <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]">
+                <ArrowRight className="size-3 stroke-[2.5]" />
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="inline-flex items-center gap-2 border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-xs px-6 py-3.5 rounded-full transition-colors"
+            >
+              <ArrowLeft className="size-3.5" />
+              <span>Back</span>
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {step === 3 && (
-        <>
-          <PageTitle>Personalize your appearance</PageTitle>
-          <p className="lede">Set theme contrast, font family, and accessibility defaults for your experience.</p>
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <PageTitle>How should the app look?</PageTitle>
+            <p className="text-sm sm:text-base font-mono text-zinc-400 max-w-2xl leading-relaxed">
+              Configure high contrast, text scaling, fonts, and motion feedback to fit your visual and sensory preferences.
+            </p>
+          </div>
 
           <PrefsFields prefs={prefs} onChange={applyPrefs} />
 
-          <div style={{ marginTop: "1.75rem" }}>
-            <button type="button" className="btn primary" onClick={finish}>
-              <span>Save &amp; Enter HelpMesh</span>
-              <span className="btn-arrow-badge" aria-hidden="true">✓</span>
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <button
+              type="button"
+              onClick={finish}
+              className="group inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-8 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_24px_rgba(37,244,151,0.2)]"
+            >
+              <span>Complete Setup</span>
+              <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]">
+                <Check className="size-3.5 stroke-[2.5]" />
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="inline-flex items-center gap-2 border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-xs px-6 py-3.5 rounded-full transition-colors"
+            >
+              <ArrowLeft className="size-3.5" />
+              <span>Back</span>
             </button>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

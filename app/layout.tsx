@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next"
-import { Atkinson_Hyperlegible, Instrument_Sans, Lexend } from "next/font/google"
+import { Atkinson_Hyperlegible, Geist_Mono, Lexend } from "next/font/google"
 import { Suspense } from "react"
 import { AnnounceProvider } from "@/components/announce"
 import { Shell } from "@/components/shell"
 import "./globals.css"
 
-const instrument = Instrument_Sans({
+const geistMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-instrument",
+  variable: "--font-geist-mono",
   display: "swap",
 })
 
@@ -51,7 +51,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${instrument.variable} ${atkinson.variable} ${lexend.variable}`}>
+    <html lang="en" className={`${geistMono.variable} ${atkinson.variable} ${lexend.variable} font-mono dark`}>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <AnnounceProvider>

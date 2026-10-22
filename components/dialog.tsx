@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useId, useRef, type ReactNode } from "react"
+import { X } from "lucide-react"
 
 export function Dialog({
   open,
@@ -36,37 +37,26 @@ export function Dialog({
       ref={ref}
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
+      className="m-auto max-w-lg w-[calc(100%-2rem)] rounded-3xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8 text-zinc-100 shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-sm focus:outline-none"
       onClose={() => {
         onClose()
         returnTo.current?.focus()
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "0.5rem" }}>
-        <h2 id={titleId} style={{ margin: 0, fontSize: "1.35rem" }}>{title}</h2>
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <h2 id={titleId} className="text-xl sm:text-2xl font-mono font-medium text-white tracking-tight">
+          {title}
+        </h2>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close dialog"
-          style={{
-            background: "var(--surface-raised)",
-            border: "1px solid var(--line)",
-            color: "var(--muted)",
-            cursor: "pointer",
-            fontSize: "0.85rem",
-            width: "1.75rem",
-            height: "1.75rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "9999px",
-            lineHeight: 1,
-            flexShrink: 0,
-          }}
+          className="flex items-center justify-center size-8 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors shrink-0"
         >
-          ✕
+          <X className="size-4" />
         </button>
       </div>
-      <p id={descriptionId} style={{ color: "var(--muted)", fontSize: "0.925rem", lineHeight: 1.55, margin: "0.5rem 0 1.25rem" }}>
+      <p id={descriptionId} className="text-sm font-mono text-zinc-400 leading-relaxed mb-6">
         {description}
       </p>
       {children}
