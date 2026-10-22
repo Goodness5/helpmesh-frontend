@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Atkinson_Hyperlegible, Instrument_Sans, Lexend } from "next/font/google"
+import { Suspense } from "react"
 import { AnnounceProvider } from "@/components/announce"
 import { Shell } from "@/components/shell"
 import "./globals.css"
@@ -54,7 +55,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <AnnounceProvider>
-          <Shell>{children}</Shell>
+          <Suspense fallback={null}>
+            <Shell>{children}</Shell>
+          </Suspense>
         </AnnounceProvider>
       </body>
     </html>

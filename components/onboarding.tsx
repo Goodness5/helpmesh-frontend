@@ -22,21 +22,22 @@ const disabilities = [
 ] as const
 
 const channels = [
-  ["text", "Text"],
-  ["voice", "Voice"],
-  ["gestures", "Gestures"],
-  ["sign_language", "Sign language"],
-  ["written_notes", "Written notes"],
+  ["text", "Text & SMS"],
+  ["voice", "Voice Call"],
+  ["gestures", "Visual Gestures"],
+  ["sign_language", "Sign Language"],
+  ["written_notes", "Written Notes"],
 ] as const
 
 export function Onboarding() {
   const demo = useDemo()
   if (!demo.ready) {
     return (
-      <>
-        <p className="steps">Step 1 of 3</p>
+      <div style={{ marginTop: "1.5rem" }}>
+        <p className="steps">Setup Flow · Initializing</p>
         <PageTitle>How will you use HelpMesh?</PageTitle>
-      </>
+        <p className="lede">Loading profile state...</p>
+      </div>
     )
   }
   return <OnboardingForm />
@@ -70,69 +71,165 @@ function OnboardingForm() {
   }
 
   return (
-    <>
-      <p className="steps">Step {step} of 3</p>
+    <div style={{ marginTop: "1.5rem" }}>
+      {/* Progress pill indicator */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.85rem" }}>
+        <span className="status-pill" style={{ color: "var(--signal)", borderColor: "rgba(37, 244, 151, 0.4)" }}>
+          Step {step} of 3
+        </span>
+        <span style={{ fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+          {step === 1 ? "Role Preference" : step === 2 ? "Accessibility & Notes" : "Display Appearance"}
+        </span>
+      </div>
+
       {step === 1 && (
         <>
           <PageTitle>How will you use HelpMesh?</PageTitle>
-          <fieldset>
-            <legend>Choose one. You can still use the other pages.</legend>
+          <p className="lede">Select your primary mode. All features and screens remain accessible regardless of your choice.</p>
+
+          <fieldset style={{ border: 0, padding: 0, margin: "1rem 0 1.5rem" }}>
+            <legend className="steps" style={{ marginBottom: "0.6rem" }}>Choose Primary Role</legend>
             <div className="stack">
               {([
-                ["help", "I need help"],
-                ["helper", "I want to help"],
-                ["fund", "I want to fund help"],
-              ] as const).map(([value, label]) => (
-                <label key={value} className="choice">
-                  <span><input type="radio" name="role" value={value} checked={role === value} onChange={() => setRole(value)} /> {label}</span>
+                ["help", "I need assistance", "Post requests for guidance, stairs, errands, or mobility support"],
+                ["helper", "I want to offer help", "Browse nearby peer requests and accept sessions when available"],
+                ["fund", "I want to fund help", "Sponsor community accessibility grants with decentralized donations"],
+              ] as const).map(([value, label, desc]) => (
+                <label
+                  key={value}
+                  className="choice"
+                  style={{
+                    cursor: "pointer",
+                    borderColor: role === value ? "var(--signal)" : "var(--line)",
+                    background: role === value ? "var(--surface-raised)" : "var(--surface)",
+                    boxShadow: role === value ? "0 0 16px -4px var(--accent-glow)" : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+                    <input
+                      type="radio"
+                      name="role"
+                      value={value}
+                      checked={role === value}
+                      onChange={() => setRole(value)}
+                      style={{ marginTop: "0.25rem" }}
+                    />
+                    <div>
+                      <strong>{label}</strong>
+                      <div style={{ fontSize: "0.85rem", color: "var(--muted)", marginTop: "0.15rem" }}>{desc}</div>
+                    </div>
+                  </div>
                 </label>
               ))}
             </div>
           </fieldset>
-          <button type="button" className="btn primary" onClick={() => { if (role) setStep(2); else announce("Choose one to continue.") }}>Continue</button>
+
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => {
+              if (role) setStep(2)
+              else announce("Choose one to continue.")
+            }}
+          >
+            <span>Continue</span>
+            <span className="btn-arrow-badge" aria-hidden="true">→</span>
+          </button>
         </>
       )}
+
       {step === 2 && (
         <>
           <PageTitle>What should a helper know?</PageTitle>
-          <p>All of this is optional. Skip it if you want.</p>
-          <fieldset>
-            <legend>Anything you want to share</legend>
-            <div className="chips">
+          <p className="lede">
+            Optional context to improve coordination. You control what is shared upon mutual match.
+          </p>
+
+          <div className="card" style={{ marginBottom: "1.25rem" }}>
+            <span className="steps">Assistance Needs or Situations</span>
+            <div className="chips" style={{ margin: "0.6rem 0 1rem" }}>
               {disabilities.map(([value, label]) => (
-                <button key={value} type="button" className="btn" aria-pressed={picked.includes(value)} onClick={() => toggle(picked, value, setPicked)}>{label}</button>
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={picked.includes(value)}
+                  onClick={() => toggle(picked, value, setPicked)}
+                >
+                  {label}
+                </button>
               ))}
             </div>
-          </fieldset>
-          <fieldset>
-            <legend>How should people communicate with you?</legend>
-            <div className="chips">
+
+            <span className="steps">Preferred Communication Channels</span>
+            <div className="chips" style={{ margin: "0.6rem 0 1rem" }}>
               {channels.map(([value, label]) => (
-                <button key={value} type="button" className="btn" aria-pressed={channelsOn.includes(value)} onClick={() => toggle(channelsOn, value, setChannelsOn)}>{label}</button>
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={channelsOn.includes(value)}
+                  onClick={() => toggle(channelsOn, value, setChannelsOn)}
+                >
+                  {label}
+                </button>
               ))}
             </div>
-          </fieldset>
-          <label className="field">
-            <span>A short note</span>
-            <textarea value={needs} onChange={(event) => setNeeds(event.target.value)} />
-          </label>
-          <label className="row">
-            <input type="checkbox" checked={share} onChange={(event) => setShare(event.target.checked)} />
-            Show this note to a helper after you match
-          </label>
+
+            <label className="field" style={{ marginTop: "0.5rem" }}>
+              <span>Additional notes for your matched helper</span>
+              <textarea
+                value={needs}
+                onChange={(event) => setNeeds(event.target.value)}
+                placeholder="e.g. Please speak clearly into my left ear, or meet at street level..."
+              />
+            </label>
+
+            <label className="row" style={{ marginTop: "0.5rem" }}>
+              <input
+                type="checkbox"
+                checked={share}
+                onChange={(event) => setShare(event.target.checked)}
+              />
+              <span>Automatically share this note with matched helpers</span>
+            </label>
+          </div>
+
           <div className="row">
-            <button type="button" className="btn primary" onClick={() => setStep(3)}>Continue</button>
-            <button type="button" className="btn quiet" onClick={() => { setPicked([]); setChannelsOn([]); setNeeds(""); setShare(false); setStep(3) }}>Skip for now</button>
+            <button type="button" className="btn primary" onClick={() => setStep(3)}>
+              <span>Continue to Display</span>
+              <span className="btn-arrow-badge" aria-hidden="true">→</span>
+            </button>
+            <button
+              type="button"
+              className="btn quiet"
+              onClick={() => {
+                setPicked([])
+                setChannelsOn([])
+                setNeeds("")
+                setShare(false)
+                setStep(3)
+              }}
+            >
+              Skip this step
+            </button>
           </div>
         </>
       )}
+
       {step === 3 && (
         <>
-          <PageTitle>How should the app look?</PageTitle>
+          <PageTitle>Personalize your appearance</PageTitle>
+          <p className="lede">Set theme contrast, font family, and accessibility defaults for your experience.</p>
+
           <PrefsFields prefs={prefs} onChange={applyPrefs} />
-          <button type="button" className="btn primary" onClick={finish}>Save and finish</button>
+
+          <div style={{ marginTop: "1.75rem" }}>
+            <button type="button" className="btn primary" onClick={finish}>
+              <span>Save &amp; Enter HelpMesh</span>
+              <span className="btn-arrow-badge" aria-hidden="true">✓</span>
+            </button>
+          </div>
         </>
       )}
-    </>
+    </div>
   )
 }

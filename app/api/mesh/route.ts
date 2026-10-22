@@ -1,7 +1,6 @@
 import { isAddress, type Address, type Hex } from "viem"
 import { handleMesh, limited, readSnapshot } from "@/lib/server/mesh"
 
-export const dynamic = "force-dynamic"
 
 function clientKey(request: Request) {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local"

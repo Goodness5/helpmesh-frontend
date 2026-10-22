@@ -121,16 +121,29 @@ export function NewRequest() {
 
   if (step === "emergency") {
     return (
-      <>
+      <div style={{ marginTop: "1.5rem" }}>
+        <p className="kicker" style={{ color: "var(--danger)" }}>
+          <span>Emergency Assistance</span>
+        </p>
         <PageTitle>Get emergency help</PageTitle>
-        <p className="lede">HelpMesh is not an emergency or medical service. If you are in danger, contact local emergency services.</p>
-        <div className="row">
-          <a className="btn primary" href="tel:911">Call 911</a>
-          <a className="btn" href="sms:911">Text 911</a>
+        <div className="card" style={{ borderColor: "rgba(248, 113, 113, 0.35)", background: "var(--danger-bg)", marginBottom: "1.5rem" }}>
+          <p className="lede" style={{ color: "var(--ink)", margin: 0 }}>
+            HelpMesh is a peer-to-peer volunteer community, not an emergency or medical dispatcher. If you are in immediate danger or require emergency medical treatment, contact official emergency services directly.
+          </p>
         </div>
-        <p>Your words are still here if this is not an emergency.</p>
-        <button type="button" className="btn" onClick={() => setStep(1)}>This is not an emergency</button>
-      </>
+        <div className="row" style={{ marginBottom: "1.5rem" }}>
+          <a className="btn danger" href="tel:911" style={{ fontWeight: 650 }}>
+            Call 911 Now
+          </a>
+          <a className="btn" href="sms:911">
+            Text 911
+          </a>
+        </div>
+        <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>Your draft request is preserved if this is not an emergency.</p>
+        <button type="button" className="btn quiet" onClick={() => setStep(1)}>
+          ← Return to my draft request
+        </button>
+      </div>
     )
   }
 
@@ -138,80 +151,195 @@ export function NewRequest() {
     const amount = parseAmount(amountText)
     const money = amount ? formatTestMoney(amount) : ""
     return (
-      <>
-        <p className="steps">Step 2 of 2</p>
-        <PageTitle>Check this before you send</PageTitle>
-        <ul className="timeline">
-          <li>{description}</li>
-          <li>{place.trim() || "No place yet. Meet in a public spot if you can."}</li>
-          <li>{mode === "volunteer" && "Volunteer. No payment."}</li>
-          <li>{mode === "reward" && `Next you will hold ${money} of test money. It is paid only after you confirm the help.`}</li>
-          <li>{mode === "sponsored" && `The fund may pay ${money}. This is the fund's money, not yours.`}</li>
-        </ul>
-        <div className="row">
-          <button type="button" className="btn primary" onClick={submit}>{mode === "sponsored" ? "Ask the fund to cover this" : "Send request"}</button>
-          <button type="button" className="btn quiet" onClick={() => setStep(1)}>Go back and edit</button>
+      <div style={{ marginTop: "1.5rem" }}>
+        <p className="steps">Step 2 of 2 · Final Review</p>
+        <PageTitle>Verify request details</PageTitle>
+        <p className="lede">
+          Please confirm these parameters before publishing to the peer mesh. Escrow commitments lock automatically upon confirmation.
+        </p>
+
+        <div className="card" style={{ marginBottom: "1.5rem" }}>
+          <ul className="timeline" style={{ margin: 0 }}>
+            <li>
+              <strong>Assistance need:</strong> {description}
+            </li>
+            <li>
+              <strong>Location:</strong> {place.trim() || "Public location nearby (exact meeting point coordinated via chat)"}
+            </li>
+            <li>
+              <strong>Compensation model:</strong>{" "}
+              {mode === "volunteer" && "Volunteer · No payment involved."}
+              {mode === "reward" && `Reward Escrow · Next you will lock ${money} in test USDC smart contract escrow until you confirm completion.`}
+              {mode === "sponsored" && `Accessibility Fund · The community fund will sponsor up to ${money} if approved.`}
+            </li>
+          </ul>
         </div>
-      </>
+
+        <div className="row">
+          <button type="button" className="btn primary" onClick={submit}>
+            <span>{mode === "sponsored" ? "Submit to Accessibility Fund" : "Broadcast Request"}</span>
+            <span className="btn-arrow-badge" aria-hidden="true">↗</span>
+          </button>
+          <button type="button" className="btn quiet" onClick={() => setStep(1)}>
+            ← Back to edit
+          </button>
+        </div>
+      </div>
     )
   }
 
   return (
-    <>
-      <p className="steps">Step 1 of 2</p>
-      <PageTitle>Ask for help</PageTitle>
-      <p>Write what you need, or start from a common request.</p>
+    <div style={{ marginTop: "1.5rem" }}>
+      <p className="steps">Step 1 of 2 · Composition</p>
+      <PageTitle>Ask for assistance</PageTitle>
+      <p className="lede">Describe what you need, or pick from common pre-configured requests.</p>
+
       {errors.length > 0 && (
         <div className="summary" tabIndex={-1} ref={summaryRef}>
-          <h2>Please fix the following</h2>
-          <ul>
+          <h2 style={{ fontSize: "1.05rem", marginTop: 0 }}>Please check the following items:</h2>
+          <ul style={{ margin: 0, paddingLeft: "1.2rem" }}>
             {errors.map((error) => (
-              <li key={error.id}><a href={`#${error.id}`}>{error.message}</a></li>
+              <li key={error.id}>
+                <a href={`#${error.id}`}>{error.message}</a>
+              </li>
             ))}
           </ul>
         </div>
       )}
-      <div className="stack">
-        {TEMPLATES.map((template) => (
-          <button key={template.id} type="button" className="btn" onClick={() => fill(template)}>{template.label}</button>
-        ))}
-      </div>
-      <h2>Your request</h2>
-      <label className="field" htmlFor="need">
-        <span>What do you need?</span>
-        <textarea id="need" value={description} onChange={(event) => patchDraft({ description: event.target.value })} aria-invalid={errors.some((error) => error.id === "need")} aria-describedby={errors.some((error) => error.id === "need") ? "need-error" : undefined} />
-      </label>
-      {errors.some((error) => error.id === "need") && <p id="need-error" className="status bad">{errors.find((error) => error.id === "need")?.message}</p>}
-      <label className="field" htmlFor="place">
-        <span>Where?</span>
-        <input id="place" autoComplete="street-address" value={place} onChange={(event) => patchDraft({ place: event.target.value })} />
-      </label>
-      <button type="button" className="btn quiet" onClick={locate}>Use my location</button>
-      <fieldset>
-        <legend>How should this be helped?</legend>
-        <div className="stack">
-          {([
-            ["volunteer", "Free. No payment."],
-            ["reward", "Reward. You hold test money until you confirm the help."],
-            ["sponsored", "Fund. A community fund may pay."],
-          ] as const).map(([value, label]) => (
-            <label key={value}><input type="radio" name="mode" value={value} checked={mode === value} onChange={() => patchDraft({ mode: value })} /> {label}</label>
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <span style={{ fontSize: "0.75rem", color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+          Quick Templates
+        </span>
+        <div className="chips" style={{ marginTop: "0.5rem" }}>
+          {TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              type="button"
+              className="btn"
+              style={{ minHeight: "2.2rem", padding: "0.35rem 0.85rem", fontSize: "0.8rem" }}
+              onClick={() => fill(template)}
+            >
+              {template.label}
+            </button>
           ))}
         </div>
-      </fieldset>
-      {mode !== "volunteer" && (
+      </div>
+
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <label className="field" htmlFor="need">
+          <span>What do you need help with?</span>
+          <textarea
+            id="need"
+            value={description}
+            onChange={(event) => patchDraft({ description: event.target.value })}
+            placeholder="e.g., I'm in a wheelchair and the elevator is out of service at Platform 3..."
+            aria-invalid={errors.some((error) => error.id === "need")}
+            aria-describedby={errors.some((error) => error.id === "need") ? "need-error" : undefined}
+          />
+        </label>
+        {errors.some((error) => error.id === "need") && (
+          <p id="need-error" className="status bad">
+            {errors.find((error) => error.id === "need")?.message}
+          </p>
+        )}
+
         <div className="field">
-          <label htmlFor="amount">Amount</label>
-          <div className="chips">
-            {chips.map((dollars) => (
-              <button key={dollars} type="button" className="btn" aria-pressed={amountText === String(dollars)} onClick={() => patchDraft({ amountText: String(dollars) })}>${dollars}</button>
+          <label htmlFor="place">
+            <span>Where? (station, corner, building)</span>
+          </label>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <input
+              id="place"
+              style={{ flex: "1 1 200px" }}
+              autoComplete="street-address"
+              value={place}
+              onChange={(event) => patchDraft({ place: event.target.value })}
+              placeholder="e.g. Central Station, Entrance B"
+            />
+            <button
+              type="button"
+              className="btn"
+              style={{ flex: "0 0 auto", minHeight: "2.85rem", padding: "0.45rem 1rem" }}
+              onClick={locate}
+            >
+              📍 Locate me
+            </button>
+          </div>
+        </div>
+
+        <fieldset style={{ marginTop: "1rem" }}>
+          <legend style={{ marginBottom: "0.6rem" }}>Payment &amp; Escrow Mode</legend>
+          <div className="stack">
+            {([
+              ["volunteer", "Volunteer", "Free mutual aid. No tokens exchanged."],
+              ["reward", "Reward Escrow", "You lock test USDC into an autonomous escrow until completion."],
+              ["sponsored", "Accessibility Fund", "Community sponsorship pool covers the reward if eligible."],
+            ] as const).map(([val, label, sub]) => (
+              <label
+                key={val}
+                className="choice"
+                style={{
+                  cursor: "pointer",
+                  borderColor: mode === val ? "var(--signal)" : "var(--line)",
+                  background: mode === val ? "var(--surface-raised)" : "var(--surface)",
+                  boxShadow: mode === val ? "0 0 16px -4px var(--accent-glow)" : "none",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                  <input
+                    type="radio"
+                    name="mode"
+                    value={val}
+                    checked={mode === val}
+                    onChange={() => patchDraft({ mode: val })}
+                  />
+                  <div>
+                    <strong>{label}</strong>
+                    <div style={{ fontSize: "0.85rem", color: "var(--muted)", marginTop: "0.15rem" }}>{sub}</div>
+                  </div>
+                </div>
+              </label>
             ))}
           </div>
-          <input id="amount" inputMode="decimal" autoComplete="off" value={amountText} onChange={(event) => patchDraft({ amountText: event.target.value })} aria-invalid={errors.some((error) => error.id === "amount")} aria-describedby="amount-hint" />
-          <p id="amount-hint" className="small muted">Use 10 or 10.50.</p>
-        </div>
-      )}
-      <button type="button" className="btn primary" onClick={review}>Continue</button>
-    </>
+        </fieldset>
+
+        {mode !== "volunteer" && (
+          <div className="field" style={{ marginTop: "1rem" }}>
+            <label htmlFor="amount">Reward Amount (USDC)</label>
+            <div className="chips" style={{ marginBottom: "0.5rem" }}>
+              {chips.map((dollars) => (
+                <button
+                  key={dollars}
+                  type="button"
+                  aria-pressed={amountText === String(dollars)}
+                  onClick={() => patchDraft({ amountText: String(dollars) })}
+                >
+                  ${dollars}
+                </button>
+              ))}
+            </div>
+            <input
+              id="amount"
+              inputMode="decimal"
+              autoComplete="off"
+              value={amountText}
+              onChange={(event) => patchDraft({ amountText: event.target.value })}
+              aria-invalid={errors.some((error) => error.id === "amount")}
+              aria-describedby="amount-hint"
+              placeholder="e.g. 10 or 25"
+            />
+            <p id="amount-hint" className="small muted">
+              Specify the exact amount (e.g. 10.00). Locked into escrow on confirmation.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <button type="button" className="btn primary" onClick={review}>
+        <span>Review &amp; Continue</span>
+        <span className="btn-arrow-badge" aria-hidden="true">→</span>
+      </button>
+    </div>
   )
 }

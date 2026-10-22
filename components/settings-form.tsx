@@ -12,31 +12,50 @@ export function SettingsForm() {
   const prefs = usePrefs()
 
   return (
-    <>
-      <PageTitle>Display settings</PageTitle>
-      <p>Changes apply now and stay on this device.</p>
+    <div style={{ marginTop: "1.5rem" }}>
+      <p className="kicker">
+        <span className="status-dot" aria-hidden="true" />
+        <span>Accessibility &amp; Environment</span>
+      </p>
+      <PageTitle>Display &amp; Accessibility</PageTitle>
+      <p className="lede">
+        Fine-tune visual contrast, typography, scaling, and feedback to suit your perceptual preferences. Changes persist locally.
+      </p>
+
       <PrefsFields
         prefs={prefs}
         onChange={(next) => {
           applyPrefs(next)
-          announce("Display updated.")
+          announce("Display settings updated.")
         }}
       />
-      <h2>Your details</h2>
-      <p>What you share with a helper, and how you use HelpMesh.</p>
-      <p><Link className="btn" href="/onboarding">Edit your setup</Link></p>
-      <h2>On this device</h2>
-      <p>Clears requests saved in this browser. Test money already sent stays on the practice network.</p>
-      <button
-        type="button"
-        className="btn"
-        onClick={() => {
-          resetDemo()
-          announce("Saved data cleared.")
-        }}
-      >
-        Clear saved data
-      </button>
-    </>
+
+      <div className="card" style={{ marginTop: "2rem" }}>
+        <h2 style={{ marginTop: 0, fontSize: "1.15rem" }}>Assistance Profile &amp; Needs</h2>
+        <p style={{ color: "var(--muted)", fontSize: "0.925rem", marginBottom: "1rem" }}>
+          Configure what you share with peers, communication preferences, and radius settings.
+        </p>
+        <Link className="btn" href="/onboarding">
+          Configure Your Profile →
+        </Link>
+      </div>
+
+      <div className="card" style={{ marginTop: "1rem", borderColor: "rgba(248, 113, 113, 0.25)" }}>
+        <h2 style={{ marginTop: 0, fontSize: "1.15rem", color: "var(--danger)" }}>Local Storage &amp; Reset</h2>
+        <p style={{ color: "var(--muted)", fontSize: "0.925rem", marginBottom: "1rem" }}>
+          Clears local browser requests and cached session state. Test money and transactions committed to Base Sepolia remain intact on-chain.
+        </p>
+        <button
+          type="button"
+          className="btn danger"
+          onClick={() => {
+            resetDemo()
+            announce("Local storage cleared.")
+          }}
+        >
+          Reset Local Browser Cache
+        </button>
+      </div>
+    </div>
   )
 }
