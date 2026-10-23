@@ -24,18 +24,18 @@ import {
 function CategoryIcon({ category }: { category: string }) {
   const cat = category.toLowerCase()
   if (cat.includes("vision") || cat.includes("read") || cat.includes("see")) {
-    return <Eye className="size-8 stroke-[1.8]" />
+    return <Eye className="size-8 stroke-[1.8]" aria-hidden="true" />
   }
   if (cat.includes("hear") || cat.includes("sign") || cat.includes("audio")) {
-    return <Ear className="size-8 stroke-[1.8]" />
+    return <Ear className="size-8 stroke-[1.8]" aria-hidden="true" />
   }
   if (cat.includes("wheelchair") || cat.includes("mobility") || cat.includes("stair")) {
-    return <Accessibility className="size-8 stroke-[1.8]" />
+    return <Accessibility className="size-8 stroke-[1.8]" aria-hidden="true" />
   }
   if (cat.includes("walk") || cat.includes("escort") || cat.includes("transit")) {
-    return <Compass className="size-8 stroke-[1.8]" />
+    return <Compass className="size-8 stroke-[1.8]" aria-hidden="true" />
   }
-  return <Radio className="size-8 stroke-[1.8]" />
+  return <Radio className="size-8 stroke-[1.8]" aria-hidden="true" />
 }
 
 export function HelperBoard() {
@@ -66,14 +66,21 @@ export function HelperBoard() {
       </div>
 
       {open.length === 0 ? (
-        <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/60 p-12 text-center font-mono space-y-3 backdrop-blur-sm">
-          <div className="size-16 rounded-2xl bg-zinc-900 border border-zinc-800 mx-auto flex items-center justify-center text-[#25f497]">
+        <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/60 p-12 text-center font-mono space-y-4 backdrop-blur-sm" role="status">
+          <div className="size-16 rounded-2xl bg-zinc-900 border border-zinc-800 mx-auto flex items-center justify-center text-[#25f497]" aria-hidden="true">
             <CheckCircle2 className="size-8" />
           </div>
-          <h2 className="text-xl font-medium text-white tracking-tight">All caught up!</h2>
+          <h2 className="text-xl font-medium text-white tracking-tight">No help requests nearby</h2>
           <p className="text-sm text-zinc-500 max-w-sm mx-auto">
-            There are no open assistance requests in your vicinity right now. Check back shortly.
+            There are no open assistance requests in your vicinity right now. Check back shortly, or create your own request if you need help.
           </p>
+          <Link
+            href="/request/new"
+            className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full transition-colors mt-4 min-h-[48px]"
+          >
+            <span>Need Help Instead?</span>
+            <ArrowUpRight className="size-4" aria-hidden="true" />
+          </Link>
         </div>
       ) : (
         <div className="space-y-6">
@@ -139,19 +146,24 @@ export function HelperBoard() {
                 {request.owner === "me" ? (
                   <Link
                     href={`/request/${request.id}`}
-                    className="inline-flex items-center gap-2 text-sm font-mono text-[#25f497] hover:underline"
+                    className="inline-flex items-center gap-2 text-sm font-mono text-[#25f497] hover:underline min-h-[48px]"
+                    aria-label={`View your request: ${request.title}`}
                   >
                     <span>View your active request</span>
-                    <ArrowUpRight className="size-4" />
+                    <ArrowUpRight className="size-4" aria-hidden="true" />
                   </Link>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setAcceptId(request.id)}
-                    className="group/btn inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(37,244,151,0.2)]"
+                    onClick={() => {
+                      setAcceptId(request.id)
+                      announce(`Opening confirmation to help ${request.requesterName}`)
+                    }}
+                    aria-label={`Accept ${request.requesterName}'s request for ${request.title}`}
+                    className="group/btn inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(37,244,151,0.2)] min-h-[48px]"
                   >
                     <span>Accept {request.requesterName}&apos;s request</span>
-                    <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]">
+                    <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]" aria-hidden="true">
                       <ArrowUpRight className="size-3 stroke-[2.5]" />
                     </span>
                   </button>
@@ -180,20 +192,26 @@ export function HelperBoard() {
               void (async () => {
                 if (!chosen) return
                 const id = chosen.id
+                announce(`Accepting help request from ${chosen.requesterName}`)
                 const message = await choose(id, "me")
                 setAcceptId(null)
                 announce(message)
                 router.push(`/request/${id}`)
               })()
             }}
-            className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
+            aria-label={`Confirm that you will help ${chosen?.requesterName}`}
+            className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] min-h-[48px]"
           >
             Confirm Acceptance
           </button>
           <button
             type="button"
-            onClick={() => setAcceptId(null)}
-            className="inline-flex items-center px-6 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-sm transition-colors"
+            onClick={() => {
+              setAcceptId(null)
+              announce("Cancelled")
+            }}
+            aria-label="Cancel and go back"
+            className="inline-flex items-center px-6 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-sm transition-colors min-h-[48px]"
           >
             Go back
           </button>

@@ -25,7 +25,7 @@ const lexend = Lexend({
   display: "swap",
 })
 
-const themeBoot = `(function(){try{var m=document.cookie.match(/(?:^|; )hm=([^;]*)/);if(!m)return;var p=JSON.parse(decodeURIComponent(m[1]));var r=document.documentElement;if(p.theme&&p.theme!=="system")r.dataset.theme=p.theme;if(p.textSize&&p.textSize!=="normal")r.dataset.text=p.textSize;if(p.font==="dyslexia")r.dataset.font="dyslexia";if(p.font==="atkinson")r.dataset.font="atkinson";if(p.reduceMotion===true)r.dataset.motion="reduce";if(p.reduceMotion===false)r.dataset.motion="ok";}catch(e){}})();`
+const themeBoot = `(function(){try{var r=document.documentElement;var m=document.cookie.match(/(?:^|; )hm=([^;]*)/);var p=m?JSON.parse(decodeURIComponent(m[1])):{};var prefersDark=window.matchMedia("(prefers-color-scheme:dark)").matches;var theme=p.theme||"system";if(theme==="system"){r.classList.add(prefersDark?"dark":"light");}else if(theme==="light"){r.classList.add("light");r.dataset.theme="light";}else{r.classList.add("dark");if(theme!=="dark")r.dataset.theme=theme;}if(p.textSize&&p.textSize!=="normal")r.dataset.text=p.textSize;if(p.font==="dyslexia")r.dataset.font="dyslexia";if(p.font==="atkinson")r.dataset.font="atkinson";if(p.reduceMotion===true)r.dataset.motion="reduce";if(p.reduceMotion===false)r.dataset.motion="ok";if(p.focusStyle&&p.focusStyle!=="default")r.dataset.focus=p.focusStyle;if(p.touchTarget&&p.touchTarget!=="default")r.dataset.touch=p.touchTarget;if(p.highContrastFocus)r.dataset.highfocus="true";if(p.largeCursor)r.dataset.cursor="large";if(p.screenReaderOptimized)r.dataset.screenreader="true";if(p.switchAccess)r.dataset.switchaccess="true";}catch(e){}})();`
 
 export const metadata: Metadata = {
   title: { default: "HelpMesh", template: "%s · HelpMesh" },
@@ -52,7 +52,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistMono.variable} ${atkinson.variable} ${lexend.variable} font-mono dark`}>
+    <html lang="en" className={`${geistMono.variable} ${atkinson.variable} ${lexend.variable} font-mono`}>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <AnnounceProvider>

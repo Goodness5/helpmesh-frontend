@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react"
-import { LiveRegions } from "@/components/announce"
+import { LiveRegions, useAnnounce } from "@/components/announce"
 import { PrivyAuthButton } from "@/components/privy-auth"
 import { VoiceController } from "@/components/voice-controller"
 import { applyPrefs, defaultPrefs, prefsSnapshot, subscribePrefs } from "@/lib/prefs"
@@ -12,6 +12,7 @@ import { Sun, Moon, HelpCircle } from "lucide-react"
 const links = [
   { href: "/request/new", label: "Ask" },
   { href: "/helper", label: "Offer" },
+  { href: "/profile", label: "My Helps" },
   { href: "/fund", label: "Fund" },
   { href: "/wallet", label: "Money" },
 ]
@@ -20,6 +21,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname()
   const seen = useRef<string | null>(null)
   const prefs = useSyncExternalStore(subscribePrefs, prefsSnapshot, () => defaultPrefs)
+  const announce = useAnnounce()
 
   useEffect(() => {
     if (seen.current === null || seen.current === path) {
@@ -31,13 +33,22 @@ export function Shell({ children }: { children: ReactNode }) {
     if (heading instanceof HTMLElement) heading.focus()
   }, [path])
 
-  const isLight = prefs.theme === "light"
+  // Determine effective theme considering system preference
+  const systemPrefersDark = typeof window !== "undefined"
+    ? window.matchMedia("(prefers-color-scheme: dark)").matches
+    : true
+  const effectiveTheme = prefs.theme === "system"
+    ? (systemPrefersDark ? "dark" : "light")
+    : prefs.theme
+  const isLight = effectiveTheme === "light"
 
   function toggleTheme() {
+    const newTheme = isLight ? "dark" : "light"
     applyPrefs({
       ...prefs,
-      theme: isLight ? "dark" : "light",
+      theme: newTheme,
     })
+    announce(`Theme changed to ${newTheme} mode`)
   }
 
   return (
@@ -108,21 +119,22 @@ export function Shell({ children }: { children: ReactNode }) {
               </span>
             </div>
 
-            {/* Theme Toggle Pill button matching x-write-only */}
+            {/* Theme Toggle Pill button */}
             <button
               type="button"
-              className="group flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-mono font-medium tracking-tight bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 hover:text-white transition-all cursor-pointer select-none"
+              className="group flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-mono font-medium tracking-tight bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 hover:text-white transition-all cursor-pointer select-none min-h-[44px]"
               onClick={toggleTheme}
-              aria-label={`Switch to ${isLight ? "dark" : "light"} theme`}
+              aria-label={`Currently ${isLight ? "light" : "dark"} mode. Click to switch to ${isLight ? "dark" : "light"} mode.`}
+              aria-pressed={isLight}
             >
               {isLight ? (
                 <>
-                  <Moon className="size-3.5 text-zinc-400 group-hover:text-white transition-colors" />
+                  <Moon className="size-3.5 text-zinc-400 group-hover:text-white transition-colors" aria-hidden="true" />
                   <span>Dark</span>
                 </>
               ) : (
                 <>
-                  <Sun className="size-3.5 text-zinc-400 group-hover:text-white transition-colors" />
+                  <Sun className="size-3.5 text-zinc-400 group-hover:text-white transition-colors" aria-hidden="true" />
                   <span>Light</span>
                 </>
               )}
@@ -185,6 +197,10 @@ export function Shell({ children }: { children: ReactNode }) {
             <span className="text-zinc-800">·</span>
             <Link href="/settings/accessibility" className="hover:text-zinc-300 transition-colors">
               Sensory &amp; Display
+            </Link>
+            <span className="text-zinc-800">·</span>
+            <Link href="/admin" className="hover:text-zinc-300 transition-colors">
+              Admin
             </Link>
           </div>
         </div>

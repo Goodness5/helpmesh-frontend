@@ -89,6 +89,78 @@
 
 :root[data-text="large"] { font-size: 125%; }
 :root[data-text="xlarge"] { font-size: 150%; }
+:root[data-text="xxlarge"] { font-size: 175%; }
+
+/* Touch target sizes */
+:root[data-touch="large"] button,
+:root[data-touch="large"] a,
+:root[data-touch="large"] [role="button"] {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 12px 16px;
+}
+
+:root[data-touch="xlarge"] button,
+:root[data-touch="xlarge"] a,
+:root[data-touch="xlarge"] [role="button"] {
+  min-height: 56px;
+  min-width: 56px;
+  padding: 16px 20px;
+}
+
+/* Focus styles */
+:root[data-focus="thick"] :focus-visible {
+  outline-width: 4px;
+  outline-offset: 4px;
+}
+
+:root[data-focus="high-contrast"] :focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 8px rgba(37, 244, 151, 0.3);
+}
+
+:root[data-highfocus="true"] :focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(37, 244, 151, 0.4), inset 0 0 0 2px var(--focus);
+}
+
+/* Large cursor */
+:root[data-cursor="large"],
+:root[data-cursor="large"] * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath fill='%2325f497' stroke='black' stroke-width='2' d='M8 4l16 12-8 2-4 10-4-24z'/%3E%3C/svg%3E") 8 4, auto !important;
+}
+
+/* Screen reader optimized - simplify visual complexity */
+:root[data-screenreader="true"] .animate-pulse,
+:root[data-screenreader="true"] .animate-ping,
+:root[data-screenreader="true"] .animate-pulse-glow,
+:root[data-screenreader="true"] .animate-float {
+  animation: none !important;
+}
+
+:root[data-screenreader="true"] [aria-hidden="true"] {
+  display: none !important;
+}
+
+/* Switch access mode - larger hit areas, clear visual feedback */
+:root[data-switchaccess="true"] button,
+:root[data-switchaccess="true"] a,
+:root[data-switchaccess="true"] [role="button"],
+:root[data-switchaccess="true"] input,
+:root[data-switchaccess="true"] select,
+:root[data-switchaccess="true"] textarea {
+  min-height: 60px;
+  min-width: 60px;
+  border-width: 3px;
+}
+
+:root[data-switchaccess="true"] :focus {
+  outline: 5px solid var(--focus) !important;
+  outline-offset: 4px !important;
+  transform: scale(1.02);
+}
 
 html {
   scroll-padding-top: calc(var(--header) + 1rem);
@@ -107,6 +179,75 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Light mode specific overrides for components */
+:root[data-theme="light"] body,
+:root.light body {
+  background-color: var(--bg);
+  color: var(--ink);
+}
+
+:root[data-theme="light"] .bg-black,
+:root.light .bg-black {
+  background-color: var(--bg) !important;
+}
+
+:root[data-theme="light"] .bg-zinc-950,
+:root[data-theme="light"] .bg-zinc-950\/80,
+:root[data-theme="light"] .bg-zinc-950\/60,
+:root.light .bg-zinc-950,
+:root.light .bg-zinc-950\/80,
+:root.light .bg-zinc-950\/60 {
+  background-color: var(--surface) !important;
+}
+
+:root[data-theme="light"] .bg-zinc-900,
+:root[data-theme="light"] .bg-zinc-900\/60,
+:root[data-theme="light"] .bg-zinc-900\/80,
+:root.light .bg-zinc-900,
+:root.light .bg-zinc-900\/60,
+:root.light .bg-zinc-900\/80 {
+  background-color: var(--surface-raised) !important;
+}
+
+:root[data-theme="light"] .text-white,
+:root.light .text-white {
+  color: var(--ink) !important;
+}
+
+:root[data-theme="light"] .text-zinc-200,
+:root[data-theme="light"] .text-zinc-300,
+:root.light .text-zinc-200,
+:root.light .text-zinc-300 {
+  color: var(--muted) !important;
+}
+
+:root[data-theme="light"] .text-zinc-400,
+:root[data-theme="light"] .text-zinc-500,
+:root.light .text-zinc-400,
+:root.light .text-zinc-500 {
+  color: var(--subtle) !important;
+}
+
+:root[data-theme="light"] .border-zinc-800,
+:root[data-theme="light"] .border-zinc-800\/80,
+:root[data-theme="light"] .border-zinc-900,
+:root.light .border-zinc-800,
+:root.light .border-zinc-800\/80,
+:root.light .border-zinc-900 {
+  border-color: var(--line) !important;
+}
+
+:root[data-theme="light"] header,
+:root.light header {
+  background-color: rgba(250, 250, 250, 0.9) !important;
+  backdrop-filter: blur(12px);
+}
+
+:root[data-theme="light"] footer,
+:root.light footer {
+  background-color: var(--bg) !important;
 }
 
 :root[data-font="atkinson"] body {

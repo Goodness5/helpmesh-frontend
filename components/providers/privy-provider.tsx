@@ -61,27 +61,20 @@ export function HelpmeshPrivyProvider({ children }: { children: ReactNode }) {
           appearance: {
             theme: "dark",
             accentColor: "#25f497",
-            showWalletLoginFirst: true,
-            walletList: [
-              "detected_ethereum_wallets",
-              "metamask",
-              "rabby_wallet",
-              "coinbase_wallet",
-              "rainbow",
-              "wallet_connect",
-            ],
+            showWalletLoginFirst: false,
+            walletList: [],
             walletChainType: "ethereum-only",
-            landingHeader: "Sign In / Connect Wallet",
-            loginMessage: "Connect your Web3 wallet (MetaMask, Rabby) or sign in via Google, X, or Passkey.",
+            landingHeader: "Sign In with Email",
+            loginMessage: "Enter your email to sign in. We'll create a secure wallet for you automatically.",
           },
           embeddedWallets: {
             ethereum: {
-              createOnLogin: "users-without-wallets",
+              createOnLogin: "all-users",
             },
           },
           defaultChain: baseSepolia,
           supportedChains: [baseSepolia],
-          loginMethods: ["wallet", "google", "twitter", "email", "sms"],
+          loginMethods: ["email"],
         }}
       >
         <RealPrivyBridge>{children}</RealPrivyBridge>

@@ -141,32 +141,7 @@ export function seed(): State {
     profile: emptyProfile,
     activity: [],
     records: [],
-    requests: [
-      {
-        id: "maria-platform",
-        owner: "maria",
-        requesterName: "Maria",
-        title: "Help reaching platform 3",
-        description: "The station elevator is broken. I need help reaching platform 3.",
-        category: "mobility",
-        mode: "volunteer",
-        amount: 0,
-        place: "Central station",
-        minutes: 15,
-        status: "open",
-        helperId: null,
-        communicate: "Text only",
-        needsSummary: "I use a wheelchair. Please text me.",
-        shareNeeds: true,
-        escrow: null,
-        chainKey: null,
-        salt: null,
-        example: true,
-        events: ["Maria asked for help."],
-        messages: [],
-        startedAt: null,
-      },
-    ],
+    requests: [],
   }
 }
 
