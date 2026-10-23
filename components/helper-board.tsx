@@ -2,12 +2,12 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAnnounce } from "@/components/announce"
 import { PageTitle } from "@/components/page-title"
 import { choose, useDemo } from "@/components/demo"
 import { Dialog } from "@/components/dialog"
-import { modeLabel } from "@/lib/model"
+import { modeLabel, type Mode } from "@/lib/model"
 import {
   Compass,
   Eye,
@@ -19,7 +19,27 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Accessibility,
+  RefreshCw,
+  Loader2,
 } from "lucide-react"
+
+interface SharedRequest {
+  id: string
+  owner: string
+  requesterName: string
+  title: string
+  description: string
+  category: string
+  mode: Mode
+  amount: number
+  place: string
+  minutes: number
+  status: string
+  communicate: string
+  needsSummary: string
+  shareNeeds: boolean
+  createdAt: number
+}
 
 function CategoryIcon({ category }: { category: string }) {
   const cat = category.toLowerCase()
@@ -43,7 +63,75 @@ export function HelperBoard() {
   const announce = useAnnounce()
   const router = useRouter()
   const [acceptId, setAcceptId] = useState<string | null>(null)
-  const open = demo.requests.filter((request) => request.status === "open")
+  const [sharedRequests, setSharedRequests] = useState<SharedRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  // Fetch shared requests from the mesh API
+  useEffect(() => {
+    let mounted = true
+    
+    async function fetchRequests() {
+      try {
+        const res = await fetch("/api/mesh/requests?excludeOwner=me")
+        const data = await res.json()
+        if (mounted && data.ok && Array.isArray(data.requests)) {
+          setSharedRequests(data.requests)
+        }
+      } catch {
+        // Silent fail
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    
+    fetchRequests()
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchRequests, 10000)
+    
+    return () => {
+      mounted = false
+      clearInterval(interval)
+    }
+  }, [])
+
+  // Manual refresh function
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      const res = await fetch("/api/mesh/requests?excludeOwner=me")
+      const data = await res.json()
+      if (data.ok && Array.isArray(data.requests)) {
+        setSharedRequests(data.requests)
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setRefreshing(false)
+    }
+  }, [])
+
+  // Combine local open requests (not owned by me) with shared requests
+  const localOpen = demo.requests.filter((request) => request.status === "open" && request.owner !== "me")
+  
+  // Merge and dedupe by ID
+  const allOpenIds = new Set<string>()
+  const allOpen: Array<SharedRequest | typeof localOpen[0]> = []
+  
+  for (const req of sharedRequests) {
+    if (!allOpenIds.has(req.id)) {
+      allOpenIds.add(req.id)
+      allOpen.push(req)
+    }
+  }
+  for (const req of localOpen) {
+    if (!allOpenIds.has(req.id)) {
+      allOpenIds.add(req.id)
+      allOpen.push(req as unknown as SharedRequest)
+    }
+  }
+  
+  const open = allOpen
   const chosen = open.find((request) => request.id === acceptId)
 
   return (
@@ -56,16 +144,32 @@ export function HelperBoard() {
         </div>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <PageTitle>Help someone nearby</PageTitle>
-          <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-300">
-            {open.length} {open.length === 1 ? "request active" : "requests active"}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors min-h-[36px]"
+              aria-label="Refresh requests"
+            >
+              <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-300">
+              {open.length} {open.length === 1 ? "request active" : "requests active"}
+            </span>
+          </div>
         </div>
         <p className="text-sm sm:text-base font-mono text-zinc-400 max-w-2xl leading-relaxed">
           Review the requested assistance, proximity, and preferred communication. Accept to establish an end-to-end coordination session.
         </p>
       </div>
 
-      {open.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="size-8 text-[#25f497] animate-spin" aria-hidden="true" />
+        </div>
+      ) : open.length === 0 ? (
         <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/60 p-12 text-center font-mono space-y-4 backdrop-blur-sm" role="status">
           <div className="size-16 rounded-2xl bg-zinc-900 border border-zinc-800 mx-auto flex items-center justify-center text-[#25f497]" aria-hidden="true">
             <CheckCircle2 className="size-8" />
@@ -125,7 +229,7 @@ export function HelperBoard() {
               <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs font-mono">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300">
                   <MapPin className="size-3.5 text-[#25f497]" />
-                  {request.owner === "maria" ? "300 meters NE" : "Nearby (~250m)"}
+                  {request.place || "Nearby"}
                 </span>
 
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300">

@@ -207,6 +207,30 @@ export function VoiceController() {
         } else if (event.error === "not-allowed") {
           setFeedback("Microphone access denied. Please enable microphone permissions in your browser settings.")
           speak("Microphone access denied. Please enable permissions.")
+        } else if (event.error === "network") {
+          // Network error - speech recognition requires internet
+          setFeedback("Network error. Voice recognition needs internet. Check your connection and try again.")
+          speak("Network error. Please check your internet connection.")
+          // Auto-retry once after a delay if network might have recovered
+          if (retryCount.current < 1) {
+            retryCount.current++
+            setTimeout(() => {
+              if (navigator.onLine) {
+                setFeedback("Retrying voice recognition...")
+                startListeningRef.current()
+              } else {
+                setFeedback("Still offline. Please reconnect and tap the microphone to try again.")
+              }
+            }, 2000)
+          }
+        } else if (event.error === "aborted") {
+          // User or system aborted - no need to show error
+          setFeedback("Voice recognition stopped.")
+        } else if (event.error === "audio-capture") {
+          setFeedback("No microphone found. Please connect a microphone and try again.")
+          speak("No microphone detected.")
+        } else if (event.error === "service-not-allowed") {
+          setFeedback("Speech service not available. Please try again later.")
         } else {
           setFeedback(`Voice error: ${event.error}. Tap microphone to retry.`)
         }

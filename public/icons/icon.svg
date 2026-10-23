@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#25f497"/>
+      <stop offset="100%" style="stop-color:#0d9488"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <g fill="#000">
+    <!-- Stylized H for HelpMesh -->
+    <rect x="120" y="128" width="48" height="256" rx="8"/>
+    <rect x="120" y="232" width="144" height="48" rx="8"/>
+    <rect x="216" y="128" width="48" height="256" rx="8"/>
+    <!-- Mesh dots -->
+    <circle cx="344" cy="176" r="28"/>
+    <circle cx="424" cy="176" r="28"/>
+    <circle cx="344" cy="256" r="28"/>
+    <circle cx="424" cy="256" r="28"/>
+    <circle cx="344" cy="336" r="28"/>
+    <circle cx="424" cy="336" r="28"/>
+    <!-- Connection lines -->
+    <rect x="340" y="200" width="8" height="36" rx="4"/>
+    <rect x="420" y="200" width="8" height="36" rx="4"/>
+    <rect x="340" y="280" width="8" height="36" rx="4"/>
+    <rect x="420" y="280" width="8" height="36" rx="4"/>
+    <rect x="368" y="252" width="36" height="8" rx="4"/>
+    <rect x="368" y="172" width="36" height="8" rx="4"/>
+    <rect x="368" y="332" width="36" height="8" rx="4"/>
+  </g>
+</svg>

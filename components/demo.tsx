@@ -39,7 +39,7 @@ import {
   type State,
 } from "@/lib/model"
 
-const KEY = "helpmesh.v1"
+const KEY = "helpmesh.v2" // v2: removed mock data
 const serverState = seed()
 let memory: State = serverState
 let hydrated = false
@@ -72,9 +72,13 @@ function isState(value: unknown): value is State {
 }
 
 function merge(saved: State): State {
-  const ids = new Set(saved.requests.map((request) => request.id))
-  const missing = serverState.requests.filter((request) => request.owner !== "me" && !ids.has(request.id))
-  return { ...serverState, ...saved, profile: { ...serverState.profile, ...saved.profile }, requests: [...missing, ...saved.requests] }
+  // Only keep user's own requests, no mock data merging
+  return { 
+    ...serverState, 
+    ...saved, 
+    profile: { ...serverState.profile, ...saved.profile }, 
+    requests: saved.requests.filter((r) => !r.example) // Remove any example/mock requests
+  }
 }
 
 export function hydrateDemo() {
@@ -172,6 +176,32 @@ export async function sendRequest(draft: Draft): Promise<{ id: string | null; me
   if (!saved) return { id: null, message: created.message }
   memory = created.state
   emit(false)
+  
+  // Publish to shared mesh API so other users can see it
+  try {
+    await fetch("/api/mesh/requests", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id,
+        owner: "me", // In production, use wallet address
+        requesterName: memory.trustedName || "Someone",
+        title: draft.title,
+        description: draft.description,
+        category: draft.category,
+        mode: draft.mode,
+        amount: draft.amount,
+        place: draft.place,
+        minutes: draft.minutes,
+        communicate: draft.communicate,
+        needsSummary: draft.needsSummary,
+        shareNeeds: draft.shareNeeds,
+      }),
+    })
+  } catch {
+    // Silent fail - local request still works
+  }
+  
   if (!(liveChain && draft.mode === "sponsored" && chain)) return { id, message: created.message }
 
   inflight = true

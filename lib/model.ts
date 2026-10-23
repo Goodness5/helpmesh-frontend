@@ -29,7 +29,7 @@ export type Escrow = {
 
 export type HelpRequest = {
   id: string
-  owner: "me" | "maria"
+  owner: string // User ID or wallet address
   requesterName: string
   title: string
   description: string

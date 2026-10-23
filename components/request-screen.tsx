@@ -260,11 +260,9 @@ export function RequestScreen({ id }: { id: string }) {
             </span>
           </div>
 
-          {liveChain && (
-            <p className="text-xs font-mono text-zinc-500">
-              Daniel and Priya are simulated peers on this device. Live peers on their own devices can accept via the Offer feed.
-            </p>
-          )}
+          <p className="text-xs font-mono text-zinc-500">
+            Your request is visible on the Offer Help feed. Real helpers nearby can accept it from their devices.
+          </p>
 
           <div className="space-y-4">
             {ranked.map(({ helper }) => (

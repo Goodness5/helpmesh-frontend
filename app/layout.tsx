@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import { AnnounceProvider } from "@/components/announce"
 import { HelpmeshPrivyProvider } from "@/components/providers/privy-provider"
 import { Shell } from "@/components/shell"
+import { PWAInstall, ServiceWorkerRegistration } from "@/components/pwa-install"
 import "./globals.css"
 
 const geistMono = Geist_Mono({
@@ -32,12 +33,33 @@ export const metadata: Metadata = {
   description: "Ask someone nearby for help, offer help, or fund it.",
   applicationName: "HelpMesh",
   robots: { index: true, follow: true },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "HelpMesh",
+  },
+  formatDetection: {
+    telephone: true,
+  },
   openGraph: {
     title: "HelpMesh",
     description: "Ask someone nearby for help, offer help, or fund it.",
     siteName: "HelpMesh",
     locale: "en_US",
     type: "website",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/icons/icon-152x152.png", sizes: "152x152" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192" },
+    ],
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
 }
 
@@ -53,6 +75,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistMono.variable} ${atkinson.variable} ${lexend.variable} font-mono`}>
+      <head>
+        {/* PWA Apple-specific meta tags */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+      </head>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <AnnounceProvider>
@@ -60,6 +89,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Suspense fallback={null}>
               <Shell>{children}</Shell>
             </Suspense>
+            <ServiceWorkerRegistration />
+            <PWAInstall />
           </HelpmeshPrivyProvider>
         </AnnounceProvider>
       </body>
