@@ -88,32 +88,8 @@ export type Helper = {
   communicate: string[]
 }
 
-export const HELPERS: Helper[] = [
-  {
-    id: "daniel",
-    name: "Daniel",
-    distanceM: 300,
-    direction: "north-east",
-    verified: true,
-    completions: 87,
-    acceptsFree: true,
-    acceptsPaid: true,
-    skills: ["mobility", "errand"],
-    communicate: ["text", "gestures"],
-  },
-  {
-    id: "priya",
-    name: "Priya",
-    distanceM: 650,
-    direction: "east",
-    verified: true,
-    completions: 42,
-    acceptsFree: true,
-    acceptsPaid: false,
-    skills: ["vision", "companionship"],
-    communicate: ["text"],
-  },
-]
+// No mock helpers - real helpers will connect via the mesh network
+export const HELPERS: Helper[] = []
 
 export const TEMPLATES = [
   { id: "stairs", label: "Help with stairs or steps", category: "mobility", need: "I need help with stairs or a step.", minutes: 15 },

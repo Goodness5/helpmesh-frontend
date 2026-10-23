@@ -264,54 +264,74 @@ export function RequestScreen({ id }: { id: string }) {
             Your request is visible on the Offer Help feed. Real helpers nearby can accept it from their devices.
           </p>
 
-          <div className="space-y-4">
-            {ranked.map(({ helper }) => (
-              <div
-                key={helper.id}
-                className="rounded-3xl border border-zinc-800/80 bg-zinc-950/70 p-6 sm:p-7 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:border-zinc-700 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="size-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#25f497] shrink-0">
-                    <User className="size-7" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <h3 className="text-lg font-mono font-medium text-white tracking-tight">
-                      {helper.name}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-zinc-400">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800">
-                        {distanceText(helper)}
-                      </span>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[#25f497]">
-                        {helper.verified ? "✓ Verified" : "Unverified"}
-                      </span>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800">
-                        {helper.completions} completed
-                      </span>
+          {ranked.length === 0 ? (
+            <div className="rounded-3xl border border-zinc-800/80 border-dashed bg-zinc-950/50 p-8 sm:p-10 text-center space-y-4">
+              <div className="size-16 mx-auto rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500">
+                <User className="size-8" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-mono font-medium text-zinc-300">
+                  Waiting for helpers
+                </h3>
+                <p className="text-sm font-mono text-zinc-500 max-w-md mx-auto">
+                  Your request is live on the mesh. When a helper nearby sees it and accepts, they&apos;ll appear here.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#25f497]/10 text-[#25f497] text-xs font-mono">
+                <span className="size-2 rounded-full bg-[#25f497] animate-pulse" />
+                Broadcasting to helpers
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {ranked.map(({ helper }) => (
+                <div
+                  key={helper.id}
+                  className="rounded-3xl border border-zinc-800/80 bg-zinc-950/70 p-6 sm:p-7 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:border-zinc-700 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="size-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#25f497] shrink-0">
+                      <User className="size-7" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <h3 className="text-lg font-mono font-medium text-white tracking-tight">
+                        {helper.name}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-zinc-400">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800">
+                          {distanceText(helper)}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[#25f497]">
+                          {helper.verified ? "✓ Verified" : "Unverified"}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800">
+                          {helper.completions} completed
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3 self-end sm:self-center">
-                  <Link
-                    href={`/profile/${helper.id}`}
-                    className="inline-flex items-center px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition-colors"
-                  >
-                    <span>Profile</span>
-                    <ArrowUpRight className="size-3 ml-1" />
-                  </Link>
+                  <div className="flex items-center gap-3 self-end sm:self-center">
+                    <Link
+                      href={`/profile/${helper.id}`}
+                      className="inline-flex items-center px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition-colors"
+                    >
+                      <span>Profile</span>
+                      <ArrowUpRight className="size-3 ml-1" />
+                    </Link>
 
-                  <button
-                    type="button"
-                    onClick={() => run(choose(request.id, helper.id))}
-                    className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-5 py-2.5 rounded-full text-xs transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <span>Choose {helper.name}</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => run(choose(request.id, helper.id))}
+                      className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-5 py-2.5 rounded-full text-xs transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <span>Choose {helper.name}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

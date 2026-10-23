@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Download, X, Smartphone } from "lucide-react"
 import { useAnnounce } from "@/components/announce"
 
@@ -9,37 +9,63 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
 }
 
-// Check if already installed (runs once at module load for initial state)
+const DISMISS_KEY = "helpmesh.pwa-dismissed"
+const INSTALL_KEY = "helpmesh.pwa-installed"
+// Don't show again for 30 days after dismissal
+const DISMISS_DURATION_MS = 30 * 24 * 60 * 60 * 1000
+
+// Check if already installed
 function checkIfInstalled(): boolean {
   if (typeof window === "undefined") return false
+  // Check display mode
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches
   const isIOSStandalone = ("standalone" in window.navigator) && (window.navigator as { standalone?: boolean }).standalone
-  return isStandalone || Boolean(isIOSStandalone)
+  // Check if we marked it as installed
+  const markedInstalled = localStorage.getItem(INSTALL_KEY) === "true"
+  return isStandalone || Boolean(isIOSStandalone) || markedInstalled
 }
 
-// Check session storage for dismissed banner
+// Check if banner was dismissed recently
 function wasBannerDismissed(): boolean {
-  if (typeof window === "undefined") return false
-  return sessionStorage.getItem("pwa-banner-dismissed") === "true"
+  if (typeof window === "undefined") return true // SSR: don't show
+  const dismissedAt = localStorage.getItem(DISMISS_KEY)
+  if (!dismissedAt) return false
+  const dismissedTime = parseInt(dismissedAt, 10)
+  // If dismissed within the duration, stay dismissed
+  return Date.now() - dismissedTime < DISMISS_DURATION_MS
 }
 
 export function PWAInstall() {
   const announce = useAnnounce()
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [showBanner, setShowBanner] = useState(() => !wasBannerDismissed())
-  const [isInstalled, setIsInstalled] = useState(checkIfInstalled)
+  const [showBanner, setShowBanner] = useState(false)
+  const [isInstalled, setIsInstalled] = useState(true) // Start hidden, check on mount
+
+  // Check install/dismiss state on mount
+  useEffect(() => {
+    const installed = checkIfInstalled()
+    const dismissed = wasBannerDismissed()
+    setIsInstalled(installed)
+    // Only potentially show banner if not installed and not dismissed
+    if (!installed && !dismissed) {
+      // We'll wait for the beforeinstallprompt event
+    }
+  }, [])
 
   useEffect(() => {
     // Listen for install prompt
     function handleBeforeInstall(e: Event) {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      // Show banner after a delay
-      setTimeout(() => setShowBanner(true), 3000)
+      // Only show banner if not dismissed
+      if (!wasBannerDismissed() && !checkIfInstalled()) {
+        setTimeout(() => setShowBanner(true), 3000)
+      }
     }
 
     // Listen for successful install
     function handleAppInstalled() {
+      localStorage.setItem(INSTALL_KEY, "true")
       setIsInstalled(true)
       setShowBanner(false)
       setDeferredPrompt(null)
@@ -55,7 +81,7 @@ export function PWAInstall() {
     }
   }, [announce])
 
-  async function handleInstall() {
+  const handleInstall = useCallback(async () => {
     if (!deferredPrompt) return
 
     try {
@@ -63,8 +89,11 @@ export function PWAInstall() {
       const { outcome } = await deferredPrompt.userChoice
 
       if (outcome === "accepted") {
+        localStorage.setItem(INSTALL_KEY, "true")
         announce("Installing HelpMesh...")
       } else {
+        // User cancelled - treat like dismiss
+        localStorage.setItem(DISMISS_KEY, Date.now().toString())
         announce("Install cancelled")
       }
 
@@ -73,13 +102,13 @@ export function PWAInstall() {
     } catch (error) {
       console.error("Install failed:", error)
     }
-  }
+  }, [deferredPrompt, announce])
 
-  function dismissBanner() {
+  const dismissBanner = useCallback(() => {
     setShowBanner(false)
-    // Don't show again for this session
-    sessionStorage.setItem("pwa-banner-dismissed", "true")
-  }
+    // Don't show again for 30 days
+    localStorage.setItem(DISMISS_KEY, Date.now().toString())
+  }, [])
 
   // Don't show install banner if already installed or no prompt available
   if (isInstalled || !showBanner || !deferredPrompt) {
