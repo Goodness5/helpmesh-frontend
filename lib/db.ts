@@ -9,15 +9,23 @@ declare global {
 
 // Create Prisma client with PostgreSQL adapter
 function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL
+  let connectionString = process.env.DATABASE_URL
   
   if (!connectionString) {
     console.warn("DATABASE_URL not set - database features will not work")
-    // Return a client that will fail gracefully
     return null as unknown as PrismaClient
   }
   
-  // Create a pg Pool with SSL configured to accept self-signed certificates
+  // Remove sslmode from URL - we'll handle SSL in code
+  // This prevents conflicts between URL params and Pool config
+  const url = new URL(connectionString)
+  url.searchParams.delete("sslmode")
+  url.searchParams.delete("ssl")
+  connectionString = url.toString()
+  
+  console.log("[DB] Connecting to:", url.hostname + ":" + url.port)
+  
+  // Create a pg Pool with SSL configured to accept self-signed/unverified certificates
   const pool = new pg.Pool({
     connectionString,
     ssl: {
@@ -25,7 +33,6 @@ function createPrismaClient() {
     },
   })
   
-  // Pass the pool directly to PrismaPg (not as an object)
   const adapter = new PrismaPg(pool)
   
   return new PrismaClient({
