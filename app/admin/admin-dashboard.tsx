@@ -17,15 +17,17 @@ import {
   type EscrowStats,
   type PoolInfo,
 } from "@/lib/admin"
+import { EscrowControls } from "@/components/admin/escrow-controls"
+import { PoolControls } from "@/components/admin/pool-controls"
+import { RoleManagement } from "@/components/admin/role-management"
+import { USDCFaucet } from "@/components/admin/usdc-faucet"
 import {
   Shield,
   Activity,
-  Wallet,
   Settings,
   ExternalLink,
   RefreshCw,
   AlertTriangle,
-  CheckCircle2,
   PauseCircle,
   PlayCircle,
   Database,
@@ -34,9 +36,12 @@ import {
   TrendingUp,
   Copy,
   Check,
+  Users,
+  Coins,
+  Wallet,
 } from "lucide-react"
 
-type Tab = "overview" | "escrow" | "pools" | "contracts" | "activity"
+type Tab = "overview" | "escrow" | "pools" | "contracts" | "roles" | "tools"
 
 export function AdminDashboard() {
   const { authenticated, user, primaryWallet } = useAccountAbstraction()
@@ -175,6 +180,8 @@ export function AdminDashboard() {
           { id: "overview", label: "Overview", icon: Activity },
           { id: "escrow", label: "Escrow", icon: Lock },
           { id: "pools", label: "Pools", icon: Database },
+          { id: "roles", label: "Roles", icon: Users },
+          { id: "tools", label: "Tools", icon: Coins },
           { id: "contracts", label: "Contracts", icon: Settings },
         ].map(({ id, label, icon: Icon }) => (
           <button
@@ -298,9 +305,10 @@ export function AdminDashboard() {
 
       {activeTab === "escrow" && (
         <div className="space-y-6">
+          {/* Current Configuration */}
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-              <h3 className="text-lg font-mono font-medium text-white">Escrow Configuration</h3>
+              <h3 className="text-lg font-mono font-medium text-white">Current Configuration</h3>
               <a
                 href={`${EXPLORER}/address/${contracts[0].address}`}
                 target="_blank"
@@ -315,7 +323,7 @@ export function AdminDashboard() {
             {loading ? (
               <p className="text-sm font-mono text-zinc-500">Loading...</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div className="space-y-1">
                   <span className="text-xs font-mono text-zinc-500 uppercase">Status</span>
                   <p className={`text-sm font-mono font-medium ${escrowSettings?.paused ? "text-red-400" : "text-[#25f497]"}`}>
@@ -327,11 +335,11 @@ export function AdminDashboard() {
                   <p className="text-sm font-mono text-white">${escrowSettings?.maxAmount}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs font-mono text-zinc-500 uppercase">Max Session Duration</span>
+                  <span className="text-xs font-mono text-zinc-500 uppercase">Max Session</span>
                   <p className="text-sm font-mono text-white">{escrowSettings?.maxSessionDuration}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs font-mono text-zinc-500 uppercase">Auto-Release Window</span>
+                  <span className="text-xs font-mono text-zinc-500 uppercase">Auto-Release</span>
                   <p className="text-sm font-mono text-white">{escrowSettings?.autoReleaseWindow}</p>
                 </div>
                 <div className="space-y-1">
@@ -344,116 +352,160 @@ export function AdminDashboard() {
             )}
           </div>
 
-          {/* Admin Functions Note */}
-          <div className="rounded-2xl border border-yellow-500/30 bg-yellow-950/20 p-5">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="size-5 text-yellow-400 shrink-0 mt-0.5" aria-hidden="true" />
-              <div>
-                <h4 className="text-sm font-mono font-medium text-yellow-300">Admin Functions</h4>
-                <p className="text-xs font-mono text-zinc-400 mt-1">
-                  To modify escrow settings (pause, set max amount, etc.), interact with the contract directly on BaseScan or use a tool like Etherscan&apos;s Write Contract feature with your admin wallet.
-                </p>
-                <a
-                  href={`${EXPLORER}/address/${contracts[0].address}#writeContract`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-yellow-400 hover:underline"
-                >
-                  <span>Open Write Contract</span>
-                  <ExternalLink className="size-3" aria-hidden="true" />
-                </a>
-              </div>
-            </div>
+          {/* Escrow Controls */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-mono font-medium text-white">Escrow Controls</h3>
+            <EscrowControls 
+              isPaused={escrowSettings?.paused ?? false} 
+              onRefresh={loadData}
+            />
           </div>
         </div>
       )}
 
       {activeTab === "pools" && (
         <div className="space-y-6">
+          {/* Pool Overview */}
           {loading ? (
             <p className="text-sm font-mono text-zinc-500">Loading pools...</p>
-          ) : pools.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-12 text-center">
-              <Database className="size-12 text-zinc-600 mx-auto mb-4" aria-hidden="true" />
-              <h3 className="text-lg font-mono font-medium text-white">No Pools Found</h3>
-              <p className="text-sm font-mono text-zinc-500 mt-2">
-                No sponsor pools have been created yet.
-              </p>
-            </div>
-          ) : (
-            pools.map((pool) => (
-              <div
-                key={pool.id}
-                className={`rounded-2xl border p-6 space-y-4 ${
-                  pool.paused ? "border-red-500/30 bg-red-950/10" : "border-zinc-800 bg-zinc-950/60"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[#25f497] font-mono font-bold">
-                      {pool.id}
-                    </div>
-                    <div>
-                      <h3 className="text-base font-mono font-medium text-white">Pool #{pool.id}</h3>
-                      <p className="text-xs font-mono text-zinc-500">
-                        Owner: {pool.owner.slice(0, 10)}...{pool.owner.slice(-8)}
-                      </p>
-                    </div>
-                  </div>
-                  {pool.paused ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono bg-red-500/20 text-red-400">
-                      <PauseCircle className="size-3" aria-hidden="true" />
-                      Paused
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono bg-[#25f497]/20 text-[#25f497]">
-                      <CheckCircle2 className="size-3" aria-hidden="true" />
-                      Active
-                    </span>
-                  )}
+          ) : pools.length > 0 && (
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-6 space-y-4">
+              <h3 className="text-lg font-mono font-medium text-white border-b border-zinc-800 pb-4">
+                Pool Overview ({pools.length} pool{pools.length !== 1 ? "s" : ""})
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-mono text-zinc-500 uppercase">Total Balance</span>
+                  <p className="text-lg font-mono font-bold text-white">
+                    ${pools.reduce((acc, p) => acc + parseFloat(p.balance), 0).toFixed(2)}
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-zinc-800">
-                  <div className="space-y-1">
-                    <span className="text-xs font-mono text-zinc-500">Balance</span>
-                    <p className="text-sm font-mono text-white font-medium">${pool.balance}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-mono text-zinc-500">Max/Request</span>
-                    <p className="text-sm font-mono text-white">${pool.maxPerRequest}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-mono text-zinc-500">Total Deposited</span>
-                    <p className="text-sm font-mono text-[#25f497]">${pool.totalDeposited}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-mono text-zinc-500">Total Disbursed</span>
-                    <p className="text-sm font-mono text-blue-400">${pool.totalDisbursed}</p>
-                  </div>
+                <div className="space-y-1">
+                  <span className="text-xs font-mono text-zinc-500 uppercase">Total Deposited</span>
+                  <p className="text-lg font-mono font-bold text-[#25f497]">
+                    ${pools.reduce((acc, p) => acc + parseFloat(p.totalDeposited), 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs font-mono text-zinc-500 uppercase">Total Disbursed</span>
+                  <p className="text-lg font-mono font-bold text-blue-400">
+                    ${pools.reduce((acc, p) => acc + parseFloat(p.totalDisbursed), 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs font-mono text-zinc-500 uppercase">Active Pools</span>
+                  <p className="text-lg font-mono font-bold text-white">
+                    {pools.filter(p => !p.paused).length} / {pools.length}
+                  </p>
                 </div>
               </div>
-            ))
+            </div>
           )}
 
-          {/* Pool Admin Note */}
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
-            <div className="flex items-start gap-3">
-              <Settings className="size-5 text-zinc-400 shrink-0 mt-0.5" aria-hidden="true" />
-              <div>
-                <h4 className="text-sm font-mono font-medium text-white">Pool Management</h4>
-                <p className="text-xs font-mono text-zinc-400 mt-1">
-                  Pool settings can be modified via the SponsorPool contract: setPaused, setMaxPerRequest, setRulesHash.
-                </p>
+          {/* Pool Controls */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-mono font-medium text-white">Pool Management</h3>
+              <a
+                href={`${EXPLORER}/address/${contracts[1].address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-mono text-[#25f497] hover:underline"
+              >
+                <span>View Contract</span>
+                <ExternalLink className="size-3" aria-hidden="true" />
+              </a>
+            </div>
+            <PoolControls pools={pools} onRefresh={loadData} />
+          </div>
+        </div>
+      )}
+
+      {activeTab === "roles" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-mono font-medium text-white">Access Control</h3>
+              <p className="text-xs font-mono text-zinc-500 mt-1">
+                Manage roles for HelpEscrow and SponsorPool contracts
+              </p>
+            </div>
+          </div>
+          <RoleManagement />
+        </div>
+      )}
+
+      {activeTab === "tools" && (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-mono font-medium text-white">Developer Tools</h3>
+            <p className="text-xs font-mono text-zinc-500 mt-1">
+              Testing and development utilities
+            </p>
+          </div>
+
+          {/* USDC Faucet */}
+          <USDCFaucet />
+
+          {/* Network Info */}
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 space-y-4">
+            <h4 className="text-sm font-mono font-medium text-white">Network Information</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+              <div className="space-y-1">
+                <span className="text-zinc-500">Network</span>
+                <p className="text-white">Base Sepolia (Testnet)</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-zinc-500">Chain ID</span>
+                <p className="text-white">84532</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-zinc-500">RPC URL</span>
+                <p className="text-white break-all">https://sepolia.base.org</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-zinc-500">Explorer</span>
                 <a
-                  href={`${EXPLORER}/address/${contracts[1].address}#writeContract`}
+                  href={EXPLORER}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-mono text-[#25f497] hover:underline"
+                  className="flex items-center gap-1 text-[#25f497] hover:underline"
                 >
-                  <span>Manage Pools on BaseScan</span>
+                  {EXPLORER}
                   <ExternalLink className="size-3" aria-hidden="true" />
                 </a>
               </div>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5 space-y-4">
+            <h4 className="text-sm font-mono font-medium text-white">Quick Links</h4>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="https://www.alchemy.com/faucets/base-sepolia"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono transition-colors"
+              >
+                <ExternalLink className="size-3" aria-hidden="true" />
+                Base Sepolia ETH Faucet
+              </a>
+              <a
+                href={`${EXPLORER}/address/${ADMIN_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono transition-colors"
+              >
+                <ExternalLink className="size-3" aria-hidden="true" />
+                Admin Wallet on Explorer
+              </a>
+              <Link
+                href="/help"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#25f497]/30 bg-[#25f497]/10 hover:bg-[#25f497]/20 text-[#25f497] text-xs font-mono transition-colors"
+              >
+                View Help Board
+              </Link>
             </div>
           </div>
         </div>
