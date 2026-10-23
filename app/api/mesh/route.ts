@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     return Response.json({ ok: true, snapshot })
   } catch {
     return Response.json(
-      { ok: false, message: "The practice network did not respond. Try again." },
+      { ok: false, message: "The network did not respond. Try again." },
       { status: 503 },
     )
   }

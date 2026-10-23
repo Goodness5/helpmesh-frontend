@@ -69,7 +69,7 @@ export function SettingsForm() {
           </h2>
         </div>
         <p className="text-sm text-zinc-400 leading-relaxed">
-          Clears local browser requests and cached session state. Test money and transactions committed to Base Sepolia remain intact on-chain.
+          Clears local browser requests and cached session state. Escrow collateral and transactions committed to Base remain intact on-chain.
         </p>
         <div className="pt-2">
           <button

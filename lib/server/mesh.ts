@@ -362,7 +362,7 @@ async function submitPermit(value: unknown, now: bigint) {
   const body = value as Record<string, unknown>
   const owner = addressOf(body.owner)
   const spender = addressOf(body.spender)
-  if (!owner || !spender || !spenders.has(spender.toLowerCase())) return "Only test money can be used here."
+  if (!owner || !spender || !spenders.has(spender.toLowerCase())) return "Only verified USDC collateral can be used here."
   if (!hex32(body.r) || !hex32(body.s)) return "The approval did not match. Try again."
   const v = Number(body.v)
   if (v !== 27 && v !== 28) return "The approval did not match. Try again."

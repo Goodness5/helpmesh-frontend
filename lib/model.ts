@@ -361,7 +361,7 @@ export function createRequest(
     draft.mode === "sponsored"
       ? "The fund is holding the amount. We are looking for a helper."
       : draft.mode === "reward"
-        ? "Request saved. Hold the test money when you are ready."
+        ? "Request saved. Lock escrow collateral when you are ready."
         : "Request sent. We are looking for a helper."
   return { state: { ...next, requests: [request, ...next.requests] }, message }
 }

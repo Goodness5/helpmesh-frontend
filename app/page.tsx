@@ -145,7 +145,7 @@ export default function HomePage() {
                   Reward Escrow
                 </h3>
                 <p className="text-sm font-mono text-zinc-400 leading-relaxed">
-                  You lock test USDC into an autonomous escrow contract. Released only when you confirm completion.
+                  You lock USDC into an autonomous escrow contract. Released only when you confirm completion.
                 </p>
               </div>
             </div>

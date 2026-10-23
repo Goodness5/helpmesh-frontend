@@ -401,7 +401,7 @@ export function NewRequest() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {([
               ["volunteer", "Volunteer", "Free mutual aid. No tokens exchanged.", HeartHandshake],
-              ["reward", "Reward Escrow", "Lock test USDC into smart contract escrow.", ShieldCheck],
+              ["reward", "Reward Escrow", "Lock USDC into smart contract escrow.", ShieldCheck],
               ["sponsored", "Accessibility Fund", "Community pool covers the reward.", Sparkles],
             ] as const).map(([val, label, sub, Icon]) => {
               const active = mode === val

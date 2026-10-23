@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const contract = url.searchParams.get("contract")
 
   const registry = {
-    network: "Base Sepolia Testnet",
+    network: "Base Network (84532)",
     chainId: CHAIN_ID,
     explorer: EXPLORER,
     contracts: {

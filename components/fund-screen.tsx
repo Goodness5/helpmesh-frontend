@@ -77,7 +77,7 @@ export function FundScreen() {
               Pool Coverage Rules
             </h2>
             <p className="text-xs font-mono text-zinc-500">
-              Verified automated disbursements on Base Sepolia
+              Verified automated disbursements on Base Network
             </p>
           </div>
         </div>

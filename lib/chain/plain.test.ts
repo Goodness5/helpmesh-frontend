@@ -26,12 +26,12 @@ test("fund rules match the written limits", () => {
 })
 
 test("reverts become plain sentences", () => {
-  assert.match(plainError(new Error("execution reverted: FaucetCooldown(1893456000)")), /More test money is available at/)
+  assert.match(plainError(new Error("execution reverted: FaucetCooldown(1893456000)")), /More funds are available at/)
   assert.equal(
     plainError(new Error("EnforcedPause()")),
     "New rewards are paused. Money already held can still be confirmed or returned.",
   )
   assert.equal(plainError(new Error("InsufficientPool()")), "The sponsorship pool does not have enough for this request.")
   assert.equal(plainError(new Error("something unexpected")), "That did not go through. Try again.")
-  assert.equal(plainError(new Error("fetch failed")), "The practice network did not respond. Try again.")
+  assert.equal(plainError(new Error("fetch failed")), "The network did not respond. Try again.")
 })

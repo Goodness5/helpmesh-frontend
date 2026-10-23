@@ -44,8 +44,8 @@ function formatChainTime(seconds: number) {
 
 const SENTENCES: [string, string][] = [
   ["EnforcedPause", "New rewards are paused. Money already held can still be confirmed or returned."],
-  ["AmountTooHigh", "That amount is above the testnet limit."],
-  ["TokenNotAllowed", "Only test money can be used here."],
+  ["AmountTooHigh", "That amount is above the maximum escrow limit."],
+  ["TokenNotAllowed", "Only verified USDC collateral can be used here."],
   ["AlreadyExists", "This request was already recorded."],
   ["AlreadyConfirmed", "This request was already recorded."],
   ["SessionActive", "You can cancel after the help session has been left for 24 hours."],
@@ -59,19 +59,19 @@ const SENTENCES: [string, string][] = [
   ["SameParty", "You can't confirm your own help."],
   ["InsufficientPool", "The sponsorship pool does not have enough for this request."],
   ["PoolIsPaused", "This sponsorship pool is paused."],
-  ["ERC20InsufficientBalance", "You don't have enough test money."],
+  ["ERC20InsufficientBalance", "You don't have enough collateral balance."],
   ["BadState", "That step is not available right now. Try again."],
 ]
 
 export function plainError(error: unknown): string {
   const text = errorText(error)
   if (/failed to fetch|network|timeout|ECONN|fetch failed/i.test(text)) {
-    return "The practice network did not respond. Try again."
+    return "The network did not respond. Try again."
   }
   if (text.includes("FaucetCooldown")) {
     const match = text.match(/FaucetCooldown\((\d+)\)/) ?? text.match(/nextAt[^0-9]*(\d{9,})/)
-    if (match?.[1]) return `More test money is available at ${formatChainTime(Number(match[1]))}.`
-    return "More test money is available later. Try again then."
+    if (match?.[1]) return `More funds are available at ${formatChainTime(Number(match[1]))}.`
+    return "More funds are available later. Try again then."
   }
   for (const [name, sentence] of SENTENCES) {
     if (text.includes(name)) return sentence

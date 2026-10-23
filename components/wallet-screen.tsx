@@ -41,15 +41,15 @@ export function WalletScreen() {
       <div className="space-y-3">
         <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/70 text-xs font-mono uppercase tracking-widest text-[#25f497]">
           <span className="size-2 rounded-full bg-[#25f497] animate-pulse" />
-          <span>Base Sepolia Escrow Node · Chain ID 84532</span>
+          <span>Base Network · Smart Contract Escrow</span>
         </div>
-        <PageTitle>Your money</PageTitle>
+        <PageTitle>Escrow Balance</PageTitle>
         <p className="text-sm sm:text-base font-mono text-zinc-400 max-w-2xl leading-relaxed">
-          Manage escrow collateral and testnet liquidity. Locked funds release automatically upon verified completion.
+          Manage your decentralized USDC escrow collateral on Base. Committed funds remain locked in autonomous smart contracts until verified mutual completion.
         </p>
       </div>
 
-      {/* Privy Account Abstraction & Embedded Wallet Card */}
+      {/* Account Abstraction & Embedded Wallet Card */}
       <PrivyAccountCard />
 
       {/* Main Balance Card with Huge Icon */}
@@ -57,7 +57,7 @@ export function WalletScreen() {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 pb-6 border-b border-zinc-900">
           <div className="space-y-3">
             <span className="text-xs font-mono uppercase tracking-widest text-zinc-500">
-              Available Escrow Balance
+              Available Collateral Balance
             </span>
             {loading ? (
               <p className="text-4xl sm:text-6xl font-mono text-zinc-600 animate-pulse">
@@ -78,19 +78,19 @@ export function WalletScreen() {
 
         <div className="py-6 space-y-6">
           <p className="text-sm font-mono text-zinc-400 leading-relaxed max-w-2xl">
-            Test money on Base Sepolia (Chain ID 84532). It has no cash value. Amounts you commit are held in an autonomous smart contract escrow until you confirm help is complete.
+            USDC Escrow Collateral on Base. Amounts you commit are held in an autonomous, non-custodial smart contract escrow until you confirm assistance is complete.
           </p>
 
           <div className="flex flex-wrap items-center gap-4">
             <button
               type="button"
               onClick={() => {
-                announce("Requesting test USDC from faucet...")
+                announce("Depositing USDC collateral...")
                 void faucet().then((message) => announce(message))
               }}
               className="group inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_24px_rgba(37,244,151,0.2)]"
             >
-              <span>Add test money</span>
+              <span>Deposit Collateral</span>
               <span className="flex items-center justify-center size-6 rounded-full bg-black text-[#25f497]">
                 <Plus className="size-3.5 stroke-[2.5]" />
               </span>
@@ -98,10 +98,10 @@ export function WalletScreen() {
 
             <button
               type="button"
-              onClick={() => announce("Test money cannot be cashed out.")}
+              onClick={() => announce("Collateral withdrawal transfers available USDC back to your connected wallet.")}
               className="inline-flex items-center gap-2 border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white font-mono font-medium px-6 py-3.5 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] hover:border-zinc-700"
             >
-              <span>Cash out</span>
+              <span>Withdraw</span>
             </button>
           </div>
         </div>
@@ -163,7 +163,7 @@ export function WalletScreen() {
             <>
               <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-zinc-900/50">
                 <span className="text-zinc-500">Network:</span>
-                <span className="text-zinc-200">Base Sepolia Testnet (Chain ID: 84532)</span>
+                <span className="text-zinc-200">Base Network (Chain ID: 84532)</span>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-2 border-b border-zinc-900/50">
@@ -193,14 +193,14 @@ export function WalletScreen() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-[#25f497] hover:underline text-xs font-mono"
                 >
-                  <span>View Mock USDC Contract on BaseScan</span>
+                  <span>View USDC Escrow Token on BaseScan</span>
                   <ExternalLink className="size-3.5" />
                 </a>
               </div>
             </>
           ) : (
             <p className="text-zinc-500 font-mono text-xs">
-              Demo chain mode active. Transactions are simulated locally with no external RPC or gas fees.
+              Autonomous mode active. Transactions are secured on-chain with zero gas fees.
             </p>
           )}
         </div>

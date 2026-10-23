@@ -47,7 +47,7 @@ export async function readMesh(address: Address, requestKey?: Hex | null): Promi
   if (!body || typeof body !== "object" || !("ok" in body) || body.ok !== true || !("snapshot" in body)) {
     const message = body && typeof body === "object" && "message" in body && typeof body.message === "string"
       ? body.message
-      : "The practice network did not respond. Try again."
+      : "The network did not respond. Try again."
     throw new Error(message)
   }
   return body.snapshot as Snapshot

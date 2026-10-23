@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode } from "react"
-import { PrivyProvider, usePrivy, useWallets, useConnectWallet } from "@privy-io/react-auth"
+import { PrivyProvider, usePrivy, useWallets, useConnectWallet, useLoginWithOAuth } from "@privy-io/react-auth"
 import { baseSepolia } from "viem/chains"
 import { accountFor } from "@/lib/chain/session"
 
@@ -12,6 +12,8 @@ const isRealPrivy = Boolean(
   rawAppId.length >= 20 &&
   !rawAppId.includes("demo")
 )
+
+export type SocialLoginProvider = "google" | "twitter" | "facebook" | "apple"
 
 export interface AccountAbstractionWallet {
   address: string
@@ -28,12 +30,15 @@ export interface AccountAbstractionState {
     email?: { address: string }
     phone?: { number: string }
     wallet?: { address: string; walletClientType?: string }
+    google?: { email: string; name?: string }
+    twitter?: { username?: string; name?: string }
   } | null
   wallets: AccountAbstractionWallet[]
   primaryWallet: AccountAbstractionWallet | null
   connectionType: "web3_wallet" | "account_abstraction" | "device_demo" | null
   login: () => void
   connectWallet: () => void
+  loginWithSocial: (provider: SocialLoginProvider) => void
   logout: () => Promise<void>
 }
 
@@ -58,15 +63,16 @@ export function HelpmeshPrivyProvider({ children }: { children: ReactNode }) {
             accentColor: "#25f497",
             showWalletLoginFirst: true,
             walletList: [
-              "detected_wallets",
+              "detected_ethereum_wallets",
               "metamask",
+              "rabby_wallet",
               "coinbase_wallet",
               "rainbow",
               "wallet_connect",
             ],
             walletChainType: "ethereum-only",
-            landingHeader: "Connect Wallet & Sign In",
-            loginMessage: "Connect an existing Web3 wallet or sign in with an Account Abstraction passkey.",
+            landingHeader: "Sign In / Connect Wallet",
+            loginMessage: "Connect your Web3 wallet (MetaMask, Rabby) or sign in via Google, X, or Passkey.",
           },
           embeddedWallets: {
             ethereum: {
@@ -75,7 +81,7 @@ export function HelpmeshPrivyProvider({ children }: { children: ReactNode }) {
           },
           defaultChain: baseSepolia,
           supportedChains: [baseSepolia],
-          loginMethods: ["wallet", "email", "sms"],
+          loginMethods: ["wallet", "google", "twitter", "email", "sms"],
         }}
       >
         <RealPrivyBridge>{children}</RealPrivyBridge>
@@ -90,6 +96,17 @@ function RealPrivyBridge({ children }: { children: ReactNode }) {
   const privy = usePrivy()
   const { wallets } = useWallets()
   const { connectWallet } = useConnectWallet()
+  const { initOAuth } = useLoginWithOAuth()
+
+  function loginWithSocial(provider: SocialLoginProvider) {
+    if (provider === "google" || provider === "twitter") {
+      initOAuth({ provider }).catch(() => {
+        privy.login()
+      })
+    } else {
+      privy.login()
+    }
+  }
 
   const mappedWallets: AccountAbstractionWallet[] = wallets.map((w) => ({
     address: w.address,
@@ -133,6 +150,18 @@ function RealPrivyBridge({ children }: { children: ReactNode }) {
                 walletClientType: privy.user.wallet.walletClientType,
               }
             : undefined,
+          google: privy.user.google
+            ? {
+                email: privy.user.google.email,
+                name: privy.user.google.name ?? undefined,
+              }
+            : undefined,
+          twitter: privy.user.twitter
+            ? {
+                username: privy.user.twitter.username ?? undefined,
+                name: privy.user.twitter.name ?? undefined,
+              }
+            : undefined,
         }
       : null,
     wallets: mappedWallets,
@@ -140,6 +169,7 @@ function RealPrivyBridge({ children }: { children: ReactNode }) {
     connectionType,
     login: privy.login,
     connectWallet,
+    loginWithSocial,
     logout: privy.logout,
   }
 
@@ -203,6 +233,16 @@ function MockPrivyBridge({ children }: { children: ReactNode }) {
     } catch {}
   }
 
+  function loginWithSocial(provider: SocialLoginProvider) {
+    setAuthenticated(true)
+    setConnectionType("account_abstraction")
+    try {
+      localStorage.setItem("helpmesh.aa.auth", "true")
+      localStorage.setItem("helpmesh.aa.type", "account_abstraction")
+      localStorage.setItem("helpmesh.aa.email", `${provider}.user@helpmesh.network`)
+    } catch {}
+  }
+
   async function logout() {
     setAuthenticated(false)
     setConnectionType(null)
@@ -239,6 +279,7 @@ function MockPrivyBridge({ children }: { children: ReactNode }) {
     connectionType,
     login,
     connectWallet,
+    loginWithSocial,
     logout,
   }
 

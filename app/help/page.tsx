@@ -49,7 +49,7 @@ export default function HelpPage() {
             </h2>
           </div>
           <p className="text-sm text-zinc-400 leading-relaxed">
-            When requesting with a reward, test USDC is locked into a smart contract on Base Sepolia. The helper cannot claim tokens until you explicitly confirm completion in your session. Community donations to the Accessibility Fund are non-refundable and strictly disbursed for verified mobility, vision, or hearing assistance.
+            When requesting with a reward, USDC is locked into a smart contract on Base. The helper cannot claim tokens until you explicitly confirm completion in your session. Community donations to the Accessibility Fund are non-refundable and strictly disbursed for verified mobility, vision, or hearing assistance.
           </p>
         </div>
 
@@ -67,7 +67,7 @@ export default function HelpPage() {
             <div className="pt-2 space-y-1">
               <strong className="text-[#25f497] text-sm">Locked in Escrow</strong>
               <p className="text-zinc-400 leading-relaxed">
-                Tokens are held by the autonomous smart contract on Base Sepolia. Neither party can seize them without meeting completion conditions.
+                Tokens are held by the autonomous smart contract on Base. Neither party can seize them without meeting completion conditions.
               </p>
             </div>
 

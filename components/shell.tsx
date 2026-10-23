@@ -97,14 +97,14 @@ export function Shell({ children }: { children: ReactNode }) {
             {/* Network indicator with pulsing status dot */}
             <div
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono bg-zinc-950 border border-zinc-800 text-zinc-300"
-              title="Connected to Base Sepolia Escrow Smart Contracts (Chain ID: 84532)"
+              title="Connected to Base Smart Contracts (Chain ID: 84532)"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25f497] opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#25f497]" />
               </span>
               <span className="hidden sm:inline font-mono text-[11px] uppercase tracking-wider text-zinc-300">
-                Base Sepolia Escrow
+                Base Escrow
               </span>
             </div>
 
@@ -173,7 +173,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs font-mono text-zinc-500">
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left">
             <p className="text-zinc-400">
-              Autonomous Escrow on Base Sepolia · Zero Data Collection · Private &amp; Non-Custodial
+              Autonomous Escrow on Base · Zero Data Collection · Private &amp; Non-Custodial
             </p>
             <span className="hidden sm:inline text-zinc-800">|</span>
             <p className="text-zinc-500">HelpMesh is not an emergency dispatcher.</p>

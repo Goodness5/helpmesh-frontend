@@ -232,7 +232,7 @@ export function RequestScreen({ id }: { id: string }) {
           </div>
 
           <p className="text-sm font-mono text-zinc-400 leading-relaxed max-w-2xl">
-            Commit {formatTestMoney(request.amount)} in the Base Sepolia escrow contract. Released to your helper only after you confirm completion.
+            Commit {formatTestMoney(request.amount)} in the Base escrow contract. Released to your helper only after you confirm completion.
           </p>
 
           <button
@@ -749,7 +749,7 @@ export function RequestScreen({ id }: { id: string }) {
       <Dialog
         open={holdOpen}
         title={`Lock ${formatTestMoney(request.amount)} in Escrow`}
-        description={`This commits ${formatTestMoney(request.amount)} of test USDC to the escrow contract. It will be released to the helper upon confirmation. Escape cancels.`}
+        description={`This commits ${formatTestMoney(request.amount)} USDC to the autonomous escrow contract. It will be released to the helper upon mutual confirmation. Escape cancels.`}
         onClose={() => setHoldOpen(false)}
       >
         <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-zinc-900">
