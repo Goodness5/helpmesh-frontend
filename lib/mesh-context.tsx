@@ -1,6 +1,10 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import type { Hex } from "viem"
+import { chainEscrow, chainAssign, chainFundReward, chainVolunteer } from "@/lib/chain/calls"
+import { liveChain } from "@/lib/chain/plain"
+import { helperRole } from "@/lib/chain/session"
 
 // Types
 export type Mode = "volunteer" | "reward" | "sponsored"
@@ -102,12 +106,17 @@ interface MeshContextType {
   loading: boolean
   error: string | null
   
-  // Actions
+  // Basic Actions (DB only)
   createRequest: (data: CreateRequestData) => Promise<{ ok: boolean; id?: string; message: string }>
   acceptRequest: (requestId: string) => Promise<{ ok: boolean; message: string }>
-  startHelp: (requestId: string) => Promise<{ ok: boolean; message: string }>
-  completeHelp: (requestId: string) => Promise<{ ok: boolean; message: string }>
-  cancelRequest: (requestId: string, reason?: string) => Promise<{ ok: boolean; message: string }>
+  startHelp: (requestId: string, chainKey?: string | null) => Promise<{ ok: boolean; message: string }>
+  completeHelp: (requestId: string, chainKey?: string | null) => Promise<{ ok: boolean; message: string }>
+  cancelRequest: (requestId: string, reason?: string, chainKey?: string | null) => Promise<{ ok: boolean; message: string }>
+  
+  // Blockchain + DB Actions
+  confirmHelp: (requestId: string, chainKey?: string | null) => Promise<{ ok: boolean; message: string }>
+  disputeRequest: (requestId: string, chainKey?: string | null) => Promise<{ ok: boolean; message: string }>
+  holdReward: (requestId: string, amount: number, chainKey: string) => Promise<{ ok: boolean; message: string }>
   
   // Messages
   messages: Message[]
@@ -291,9 +300,18 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     }
   }, [userId, userName, refresh])
 
-  // Start help session
-  const startHelp = useCallback(async (requestId: string) => {
+  // Start help session (with optional blockchain)
+  const startHelp = useCallback(async (requestId: string, chainKey?: string | null) => {
     try {
+      // Call blockchain if chain key provided
+      if (liveChain && chainKey) {
+        const chainResult = await chainEscrow(helperRole(userId || "helper"), chainKey as Hex, "start")
+        if (!chainResult.ok) {
+          return { ok: false, message: chainResult.message }
+        }
+      }
+      
+      // Update database
       const res = await fetch("/api/mesh/requests", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -312,13 +330,23 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       
       return { ok: false, message: result.message || "Failed to start" }
     } catch (err) {
+      console.error("[Mesh] Start help error:", err)
       return { ok: false, message: "Network error" }
     }
-  }, [refreshRequest])
+  }, [refreshRequest, userId])
 
-  // Complete help
-  const completeHelp = useCallback(async (requestId: string) => {
+  // Complete help (with optional blockchain)
+  const completeHelp = useCallback(async (requestId: string, chainKey?: string | null) => {
     try {
+      // Call blockchain if chain key provided
+      if (liveChain && chainKey) {
+        const chainResult = await chainEscrow(helperRole(userId || "helper"), chainKey as Hex, "complete")
+        if (!chainResult.ok) {
+          return { ok: false, message: chainResult.message }
+        }
+      }
+      
+      // Update database
       const res = await fetch("/api/mesh/requests", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -337,13 +365,23 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       
       return { ok: false, message: result.message || "Failed to complete" }
     } catch (err) {
+      console.error("[Mesh] Complete help error:", err)
       return { ok: false, message: "Network error" }
     }
-  }, [refresh])
+  }, [refresh, userId])
 
-  // Cancel request
-  const cancelRequest = useCallback(async (requestId: string, reason?: string) => {
+  // Cancel request (with optional blockchain)
+  const cancelRequest = useCallback(async (requestId: string, reason?: string, chainKey?: string | null) => {
     try {
+      // Call blockchain if chain key provided
+      if (liveChain && chainKey) {
+        const chainResult = await chainEscrow("you", chainKey as Hex, "cancel")
+        if (!chainResult.ok) {
+          return { ok: false, message: chainResult.message }
+        }
+      }
+      
+      // Update database
       const res = await fetch("/api/mesh/requests", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -363,9 +401,115 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       
       return { ok: false, message: result.message || "Failed to cancel" }
     } catch (err) {
+      console.error("[Mesh] Cancel error:", err)
       return { ok: false, message: "Network error" }
     }
   }, [refresh])
+
+  // Confirm help received and release payment (blockchain + DB)
+  const confirmHelp = useCallback(async (requestId: string, chainKey?: string | null) => {
+    try {
+      // Call blockchain to release payment
+      if (liveChain && chainKey) {
+        const chainResult = await chainEscrow("you", chainKey as Hex, "confirm")
+        if (!chainResult.ok) {
+          return { ok: false, message: chainResult.message }
+        }
+      }
+      
+      // Update database
+      const res = await fetch("/api/mesh/requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: requestId,
+          status: "done",
+        }),
+      })
+      
+      const result = await res.json()
+      
+      if (result.ok) {
+        await refresh()
+        return { ok: true, message: "Help confirmed! Payment released." }
+      }
+      
+      return { ok: false, message: result.message || "Failed to confirm" }
+    } catch (err) {
+      console.error("[Mesh] Confirm help error:", err)
+      return { ok: false, message: "Network error" }
+    }
+  }, [refresh])
+
+  // Open a dispute (blockchain + DB)
+  const disputeRequest = useCallback(async (requestId: string, chainKey?: string | null) => {
+    try {
+      // Call blockchain to open dispute
+      if (liveChain && chainKey) {
+        const chainResult = await chainEscrow("you", chainKey as Hex, "dispute")
+        if (!chainResult.ok) {
+          return { ok: false, message: chainResult.message }
+        }
+      }
+      
+      // Update database
+      const res = await fetch("/api/mesh/requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: requestId,
+          status: "disputed",
+        }),
+      })
+      
+      const result = await res.json()
+      
+      if (result.ok) {
+        await refresh()
+        return { ok: true, message: "Dispute opened. A moderator will review." }
+      }
+      
+      return { ok: false, message: result.message || "Failed to open dispute" }
+    } catch (err) {
+      console.error("[Mesh] Dispute error:", err)
+      return { ok: false, message: "Network error" }
+    }
+  }, [refresh])
+
+  // Hold reward in escrow (blockchain + DB)
+  const holdReward = useCallback(async (requestId: string, amount: number, chainKey: string) => {
+    try {
+      // Call blockchain to lock funds
+      if (liveChain) {
+        const chainResult = await chainFundReward(chainKey as Hex, BigInt(amount))
+        if (!chainResult.ok) {
+          return { ok: false, message: chainResult.message }
+        }
+      }
+      
+      // Update database with escrow state
+      const res = await fetch("/api/mesh/requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: requestId,
+          escrowState: 1, // Funds locked
+        }),
+      })
+      
+      const result = await res.json()
+      
+      if (result.ok) {
+        await refreshRequest(requestId)
+        return { ok: true, message: "Funds locked in escrow!" }
+      }
+      
+      return { ok: false, message: result.message || "Failed to lock funds" }
+    } catch (err) {
+      console.error("[Mesh] Hold reward error:", err)
+      return { ok: false, message: "Network error" }
+    }
+  }, [refreshRequest])
 
   // Send message
   const sendMessage = useCallback(async (requestId: string, content: string) => {
@@ -411,6 +555,9 @@ export function MeshProvider({ children }: { children: ReactNode }) {
         startHelp,
         completeHelp,
         cancelRequest,
+        confirmHelp,
+        disputeRequest,
+        holdReward,
         messages,
         sendMessage,
         refresh,
