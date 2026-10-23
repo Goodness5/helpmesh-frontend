@@ -7,6 +7,7 @@ import { useAnnounce } from "@/components/announce"
 import { PageTitle } from "@/components/page-title"
 import { choose, useDemo } from "@/components/demo"
 import { Dialog } from "@/components/dialog"
+import { LocationMap, useMyLocation, parseCoordinates } from "@/components/location-map"
 import { modeLabel, type Mode } from "@/lib/model"
 import {
   Compass,
@@ -21,6 +22,7 @@ import {
   Accessibility,
   RefreshCw,
   Loader2,
+  Send,
 } from "lucide-react"
 
 interface SharedRequest {
@@ -63,9 +65,12 @@ export function HelperBoard() {
   const announce = useAnnounce()
   const router = useRouter()
   const [acceptId, setAcceptId] = useState<string | null>(null)
+  const [messageId, setMessageId] = useState<string | null>(null)
+  const [messageText, setMessageText] = useState("")
   const [sharedRequests, setSharedRequests] = useState<SharedRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const { location: myLocation } = useMyLocation()
 
   // Fetch shared requests from the mesh API
   useEffect(() => {
@@ -225,11 +230,23 @@ export function HelperBoard() {
                 {request.description}
               </p>
 
+              {/* Location Map */}
+              {parseCoordinates(request.place) && (
+                <LocationMap 
+                  place={request.place} 
+                  requesterName={request.requesterName}
+                  helperLocation={myLocation}
+                  height="180px"
+                />
+              )}
+
               {/* Telemetry and Specs */}
               <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs font-mono">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300">
                   <MapPin className="size-3.5 text-[#25f497]" />
-                  {request.place || "Nearby"}
+                  {parseCoordinates(request.place) 
+                    ? `GPS Location` 
+                    : (request.place || "Nearby")}
                 </span>
 
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/80 text-zinc-300">
@@ -246,7 +263,7 @@ export function HelperBoard() {
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-2 border-t border-zinc-900">
+              <div className="pt-2 border-t border-zinc-900 flex flex-wrap items-center gap-3">
                 {request.owner === "me" ? (
                   <Link
                     href={`/request/${request.id}`}
@@ -257,20 +274,34 @@ export function HelperBoard() {
                     <ArrowUpRight className="size-4" aria-hidden="true" />
                   </Link>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAcceptId(request.id)
-                      announce(`Opening confirmation to help ${request.requesterName}`)
-                    }}
-                    aria-label={`Accept ${request.requesterName}'s request for ${request.title}`}
-                    className="group/btn inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(37,244,151,0.2)] min-h-[48px]"
-                  >
-                    <span>Accept {request.requesterName}&apos;s request</span>
-                    <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]" aria-hidden="true">
-                      <ArrowUpRight className="size-3 stroke-[2.5]" />
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMessageId(request.id)
+                        announce(`Opening chat with ${request.requesterName}`)
+                      }}
+                      aria-label={`Message ${request.requesterName} before accepting`}
+                      className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-mono font-medium transition-all min-h-[48px]"
+                    >
+                      <MessageSquare className="size-4" aria-hidden="true" />
+                      <span>Message first</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAcceptId(request.id)
+                        announce(`Opening confirmation to help ${request.requesterName}`)
+                      }}
+                      aria-label={`Accept ${request.requesterName}'s request for ${request.title}`}
+                      className="group/btn inline-flex items-center gap-3 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-7 py-3 rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(37,244,151,0.2)] min-h-[48px]"
+                    >
+                      <span>Accept request</span>
+                      <span className="flex items-center justify-center size-5 rounded-full bg-black text-[#25f497]" aria-hidden="true">
+                        <ArrowUpRight className="size-3 stroke-[2.5]" />
+                      </span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -320,6 +351,105 @@ export function HelperBoard() {
             Go back
           </button>
         </div>
+      </Dialog>
+
+      {/* Pre-Accept Messaging Dialog */}
+      <Dialog
+        open={Boolean(messageId)}
+        title={messageId ? `Message ${open.find(r => r.id === messageId)?.requesterName || "requester"}` : "Send message"}
+        description="Send a message before accepting. This helps clarify details or let them know you're on your way."
+        onClose={() => {
+          setMessageId(null)
+          setMessageText("")
+        }}
+      >
+        {(() => {
+          const msgRequest = open.find(r => r.id === messageId)
+          if (!msgRequest) return null
+          
+          return (
+            <div className="space-y-4">
+              {/* Map preview */}
+              {parseCoordinates(msgRequest.place) && (
+                <LocationMap 
+                  place={msgRequest.place} 
+                  requesterName={msgRequest.requesterName}
+                  helperLocation={myLocation}
+                  height="150px"
+                />
+              )}
+              
+              {/* Quick message buttons */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "I can help! On my way.",
+                  "How far are you exactly?",
+                  "I'll be there in 5 minutes",
+                  "Can you share more details?",
+                ].map((quick) => (
+                  <button
+                    key={quick}
+                    type="button"
+                    onClick={() => setMessageText(quick)}
+                    className="px-3 py-1.5 text-xs font-mono rounded-full border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 transition-colors"
+                  >
+                    {quick}
+                  </button>
+                ))}
+              </div>
+              
+              {/* Message input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#25f497]/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!messageText.trim()) return
+                    // TODO: Send message via API
+                    announce(`Message sent to ${msgRequest.requesterName}: ${messageText}`)
+                    setMessageText("")
+                    // Optionally close or keep open for more messages
+                  }}
+                  disabled={!messageText.trim()}
+                  className="px-4 py-3 rounded-xl bg-[#25f497] hover:bg-[#1ee088] disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-mono font-semibold transition-colors"
+                >
+                  <Send className="size-5" />
+                </button>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-zinc-900">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMessageId(null)
+                    setMessageText("")
+                    setAcceptId(msgRequest.id)
+                  }}
+                  className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full transition-all min-h-[48px]"
+                >
+                  Accept &amp; Help
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMessageId(null)
+                    setMessageText("")
+                  }}
+                  className="inline-flex items-center px-6 py-3 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-sm transition-colors min-h-[48px]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </Dialog>
     </div>
   )
