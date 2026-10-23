@@ -1,0 +1,176 @@
+// HelpMesh Database Schema
+// Peer-to-peer assistance network on Base blockchain
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User accounts - linked to wallet addresses
+model User {
+  id            String    @id @default(cuid())
+  walletAddress String?   @unique
+  email         String?   @unique
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Profile settings
+  role          String?   // "help" | "helper" | "fund"
+  disabilities  String[]  @default([])
+  communicate   String[]  @default([])
+  needsSummary  String?
+  shareWithHelper Boolean @default(false)
+  
+  // Reputation
+  completions   Int       @default(0)
+  verified      Boolean   @default(false)
+  skills        String[]  @default([])
+  
+  // Relations
+  requestsCreated   HelpRequest[] @relation("Requester")
+  requestsHelped    HelpRequest[] @relation("Helper")
+  messagesSent      Message[]
+  connectionsFrom   Connection[]  @relation("ConnectionFrom")
+  connectionsTo     Connection[]  @relation("ConnectionTo")
+  tips              Tip[]
+
+  @@index([walletAddress])
+  @@index([email])
+}
+
+// Help requests
+model HelpRequest {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  expiresAt     DateTime?
+  
+  // Request details
+  title         String
+  description   String
+  category      String
+  mode          String    // "volunteer" | "reward" | "sponsored"
+  amount        Int       @default(0) // In USDC units (6 decimals)
+  place         String?
+  minutes       Int       @default(20)
+  communicate   String    @default("Text")
+  needsSummary  String?
+  shareNeeds    Boolean   @default(false)
+  
+  // Status
+  status        String    @default("open") // open, assigned, started, awaiting_confirm, done, cancelled, disputed, resolved, refunded
+  startedAt     DateTime?
+  completedAt   DateTime?
+  
+  // Blockchain
+  chainKey      String?   @unique
+  salt          String?
+  escrowState   Int?
+  escrowSource  String?   // "requester" | "pool"
+  
+  // Relations
+  requesterId   String
+  requester     User      @relation("Requester", fields: [requesterId], references: [id])
+  helperId      String?
+  helper        User?     @relation("Helper", fields: [helperId], references: [id])
+  messages      Message[]
+  events        RequestEvent[]
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([helperId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// Request events/timeline
+model RequestEvent {
+  id          String      @id @default(cuid())
+  createdAt   DateTime    @default(now())
+  requestId   String
+  request     HelpRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  event       String
+  
+  @@index([requestId])
+}
+
+// Chat messages
+model Message {
+  id          String      @id @default(cuid())
+  createdAt   DateTime    @default(now())
+  requestId   String
+  request     HelpRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User        @relation(fields: [senderId], references: [id])
+  body        String
+  
+  @@index([requestId])
+  @@index([senderId])
+}
+
+// Connections (friends, people helped, helpers used)
+model Connection {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  fromUserId    String
+  fromUser      User      @relation("ConnectionFrom", fields: [fromUserId], references: [id])
+  toUserId      String
+  toUser        User      @relation("ConnectionTo", fields: [toUserId], references: [id])
+  
+  type          String    // "friend" | "helped" | "helper"
+  helpCount     Int       @default(0)
+  lastInteraction DateTime?
+  notes         String?
+  
+  @@unique([fromUserId, toUserId, type])
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+// Tips sent
+model Tip {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  senderId    String
+  sender      User      @relation(fields: [senderId], references: [id])
+  recipientId String
+  amount      Int       // In USDC units
+  requestId   String?   // Optional: linked to a specific request
+  txHash      String?   // Blockchain transaction hash
+  
+  @@index([senderId])
+  @@index([recipientId])
+}
+
+// Sponsor pool donations
+model PoolDonation {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  donorId     String?
+  walletAddress String?
+  amount      Int       // In USDC units
+  txHash      String?
+  
+  @@index([donorId])
+}
+
+// Live location shares (ephemeral, but tracked for debugging)
+model LocationShare {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  requestId   String
+  role        String    // "requester" | "helper"
+  lat         Float
+  lng         Float
+  accuracy    Float?
+  
+  @@index([requestId])
+  @@index([createdAt])
+}
