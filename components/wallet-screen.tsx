@@ -8,6 +8,7 @@ import { addresses, EXPLORER } from "@/lib/chain/addresses"
 import { liveChain } from "@/lib/chain/plain"
 import { accountFor } from "@/lib/chain/session"
 import { formatTestMoney } from "@/lib/model"
+import { PrivyAccountCard } from "@/components/privy-auth"
 import { Wallet, Plus, Copy, Check, ExternalLink, History, Cpu } from "lucide-react"
 
 function yourAddress() {
@@ -47,6 +48,9 @@ export function WalletScreen() {
           Manage escrow collateral and testnet liquidity. Locked funds release automatically upon verified completion.
         </p>
       </div>
+
+      {/* Privy Account Abstraction & Embedded Wallet Card */}
+      <PrivyAccountCard />
 
       {/* Main Balance Card with Huge Icon */}
       <div className="relative overflow-hidden rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-10 backdrop-blur-md shadow-2xl transition-all duration-200 hover:border-zinc-700">

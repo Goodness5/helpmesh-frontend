@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Atkinson_Hyperlegible, Geist_Mono, Lexend } from "next/font/google"
 import { Suspense } from "react"
 import { AnnounceProvider } from "@/components/announce"
+import { HelpmeshPrivyProvider } from "@/components/providers/privy-provider"
 import { Shell } from "@/components/shell"
 import "./globals.css"
 
@@ -55,9 +56,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <AnnounceProvider>
-          <Suspense fallback={null}>
-            <Shell>{children}</Shell>
-          </Suspense>
+          <HelpmeshPrivyProvider>
+            <Suspense fallback={null}>
+              <Shell>{children}</Shell>
+            </Suspense>
+          </HelpmeshPrivyProvider>
         </AnnounceProvider>
       </body>
     </html>

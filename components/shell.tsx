@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react"
 import { LiveRegions } from "@/components/announce"
+import { PrivyAuthButton } from "@/components/privy-auth"
 import { VoiceController } from "@/components/voice-controller"
 import { applyPrefs, defaultPrefs, prefsSnapshot, subscribePrefs } from "@/lib/prefs"
 import { Sun, Moon, HelpCircle } from "lucide-react"
@@ -90,6 +91,9 @@ export function Shell({ children }: { children: ReactNode }) {
 
           {/* Header Action Accessories */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Privy Account Abstraction Auth Button */}
+            <PrivyAuthButton />
+
             {/* Network indicator with pulsing status dot */}
             <div
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono bg-zinc-950 border border-zinc-800 text-zinc-300"
