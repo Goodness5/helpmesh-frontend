@@ -100,12 +100,29 @@ export function NewRequest() {
       announce("Location is not available. You can type a place.")
       return
     }
+    announce("Getting your precise location...")
     navigator.geolocation.getCurrentPosition(
-      () => {
-        patchDraft({ place: place || "Near you" })
-        announce("Place set to near you. You can edit it.")
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords
+        // Store coords for sharing with helpers
+        const locationText = `GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${Math.round(accuracy)}m)`
+        patchDraft({ place: locationText })
+        announce(`Location found with ${Math.round(accuracy)} meter accuracy.`)
       },
-      () => announce("We could not read your location. Type a place instead."),
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          announce("Location permission denied. Please enable it in browser settings, or type a place.")
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          announce("GPS unavailable. Make sure location is enabled on your device.")
+        } else {
+          announce("Location timed out. Try again or type a place.")
+        }
+      },
+      {
+        enableHighAccuracy: true, // Use GPS, not just WiFi/cell
+        timeout: 15000,           // Wait up to 15 seconds
+        maximumAge: 0,            // Don't use cached position
+      }
     )
   }
 

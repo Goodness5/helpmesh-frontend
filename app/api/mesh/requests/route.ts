@@ -1,43 +1,16 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/db"
 
-// In-memory fallback storage when database is unavailable
-interface MemoryRequest {
-  id: string
-  owner: string
-  requesterName: string
-  title: string
-  description: string
-  category: string
-  mode: string
-  amount: number
-  place: string
-  minutes: number
-  status: string
-  communicate: string
-  needsSummary: string
-  shareNeeds: boolean
-  createdAt: number
-  expiresAt: number
-}
-
-const memoryRequests = new Map<string, MemoryRequest>()
-
-// Clean up expired requests every 5 minutes
-if (typeof setInterval !== "undefined") {
-  setInterval(() => {
-    const now = Date.now()
-    for (const [id, req] of memoryRequests.entries()) {
-      if (req.expiresAt < now) {
-        memoryRequests.delete(id)
-      }
-    }
-  }, 5 * 60 * 1000)
-}
-
 // Check if database is available
 function isDatabaseAvailable(): boolean {
-  return prisma !== null && process.env.DATABASE_URL !== undefined
+  const available = prisma !== null && process.env.DATABASE_URL !== undefined
+  if (!available) {
+    console.warn("[API] Database not available:", {
+      prismaExists: prisma !== null,
+      envSet: process.env.DATABASE_URL !== undefined,
+    })
+  }
+  return available
 }
 
 // GET: Fetch all open requests (for helpers to see)
@@ -45,98 +18,92 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const excludeOwner = url.searchParams.get("excludeOwner")
   
-  // Try database first, fall back to memory
-  if (isDatabaseAvailable()) {
-    try {
-      const status = url.searchParams.get("status") || "open"
-      const category = url.searchParams.get("category")
-      const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100)
-      const now = new Date()
-      
-      const where: Record<string, unknown> = {
-        status,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: now } },
-        ],
-      }
-      
-      if (excludeOwner) {
-        where.NOT = { requesterId: excludeOwner }
-      }
-      
-      if (category) {
-        where.category = category
-      }
-      
-      const requests = await prisma.helpRequest.findMany({
-        where,
-        include: {
-          requester: {
-            select: {
-              id: true,
-              name: true,
-              walletAddress: true,
-              verified: true,
-              completions: true,
-            },
+  if (!isDatabaseAvailable()) {
+    console.error("[API] GET requests: DATABASE_URL not configured")
+    return NextResponse.json({
+      ok: true,
+      requests: [],
+      count: 0,
+      source: "none",
+      warning: "Database not configured",
+    })
+  }
+  
+  try {
+    const status = url.searchParams.get("status") || "open"
+    const category = url.searchParams.get("category")
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100)
+    const now = new Date()
+    
+    const where: Record<string, unknown> = {
+      status,
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gt: now } },
+      ],
+    }
+    
+    if (excludeOwner) {
+      where.NOT = { requesterId: excludeOwner }
+    }
+    
+    if (category) {
+      where.category = category
+    }
+    
+    const requests = await prisma.helpRequest.findMany({
+      where,
+      include: {
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            walletAddress: true,
+            verified: true,
+            completions: true,
           },
         },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-      })
-      
-      const formattedRequests = requests.map((req) => ({
-        id: req.id,
-        owner: req.requesterId,
-        requesterName: req.requester.name || "Anonymous",
-        requesterVerified: req.requester.verified,
-        title: req.title,
-        description: req.description,
-        category: req.category,
-        mode: req.mode,
-        amount: req.amount,
-        place: req.place || "",
-        minutes: req.minutes,
-        status: req.status,
-        communicate: req.communicate,
-        needsSummary: req.needsSummary || "",
-        shareNeeds: req.shareNeeds,
-        createdAt: req.createdAt.getTime(),
-        expiresAt: req.expiresAt?.getTime() || null,
-      }))
-      
-      return NextResponse.json({
-        ok: true,
-        requests: formattedRequests,
-        count: formattedRequests.length,
-        source: "database",
-      })
-    } catch (error) {
-      console.error("Database error, falling back to memory:", error)
-      // Fall through to memory storage
-    }
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    })
+    
+    const formattedRequests = requests.map((req) => ({
+      id: req.id,
+      owner: req.requesterId,
+      requesterName: req.requester.name || "Anonymous",
+      requesterVerified: req.requester.verified,
+      title: req.title,
+      description: req.description,
+      category: req.category,
+      mode: req.mode,
+      amount: req.amount,
+      place: req.place || "",
+      minutes: req.minutes,
+      status: req.status,
+      communicate: req.communicate,
+      needsSummary: req.needsSummary || "",
+      shareNeeds: req.shareNeeds,
+      createdAt: req.createdAt.getTime(),
+      expiresAt: req.expiresAt?.getTime() || null,
+    }))
+    
+    return NextResponse.json({
+      ok: true,
+      requests: formattedRequests,
+      count: formattedRequests.length,
+      source: "database",
+    })
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    console.error("[API] GET requests error:", errorMessage, error)
+    return NextResponse.json({
+      ok: false,
+      requests: [],
+      count: 0,
+      error: errorMessage,
+    }, { status: 500 })
   }
-  
-  // Fallback: use in-memory storage
-  const now = Date.now()
-  const openRequests: MemoryRequest[] = []
-  
-  for (const req of memoryRequests.values()) {
-    if (req.status === "open" && req.expiresAt > now) {
-      if (excludeOwner && req.owner === excludeOwner) continue
-      openRequests.push(req)
-    }
-  }
-  
-  openRequests.sort((a, b) => b.createdAt - a.createdAt)
-  
-  return NextResponse.json({
-    ok: true,
-    requests: openRequests,
-    count: openRequests.length,
-    source: "memory",
-  })
 }
 
 // POST: Publish a new request
@@ -171,109 +138,85 @@ export async function POST(request: Request) {
     const now = Date.now()
     const expiresAt = now + 24 * 60 * 60 * 1000
     
-    // Try database first
-    if (isDatabaseAvailable()) {
-      try {
-        let user = owner ? await prisma.user.findFirst({
-          where: {
-            OR: [
-              { id: owner },
-              { walletAddress: owner },
-            ],
-          },
-        }) : null
-        
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              walletAddress: owner || undefined,
-              name: requesterName || "Anonymous",
-            },
-          })
-        }
-        
-        const helpRequest = await prisma.helpRequest.create({
+    // Database is required for requests to persist across users
+    if (!isDatabaseAvailable()) {
+      console.error("[API] DATABASE_URL not configured")
+      return NextResponse.json(
+        { ok: false, message: "Database not configured. Request not saved.", error: "NO_DATABASE" },
+        { status: 503 }
+      )
+    }
+    
+    try {
+      let user = owner ? await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: owner },
+            { walletAddress: owner },
+          ],
+        },
+      }) : null
+      
+      if (!user) {
+        user = await prisma.user.create({
           data: {
-            id: requestId,
-            requesterId: user.id,
-            title,
-            description: description || "",
-            category: category || "other",
-            mode: mode || "volunteer",
-            amount: amount || 0,
-            place: place || null,
-            minutes: minutes || 20,
-            communicate: communicate || "Text",
-            needsSummary: needsSummary || null,
-            shareNeeds: shareNeeds || false,
-            expiresAt: new Date(expiresAt),
-            events: {
-              create: {
-                event: "Request created",
-              },
-            },
-          },
-          include: {
-            requester: {
-              select: { name: true },
-            },
+            walletAddress: owner || undefined,
+            name: requesterName || "Anonymous",
           },
         })
-        
-        return NextResponse.json({
-          ok: true,
-          message: "Request published to the mesh",
-          source: "database",
-          request: {
-            id: helpRequest.id,
-            owner: helpRequest.requesterId,
-            requesterName: helpRequest.requester.name,
-            title: helpRequest.title,
-            status: helpRequest.status,
-            createdAt: helpRequest.createdAt.getTime(),
-          },
-        })
-      } catch (error) {
-        console.error("Database error, falling back to memory:", error)
-        // Fall through to memory storage
       }
+      
+      const helpRequest = await prisma.helpRequest.create({
+        data: {
+          id: requestId,
+          requesterId: user.id,
+          title,
+          description: description || "",
+          category: category || "other",
+          mode: mode || "volunteer",
+          amount: amount || 0,
+          place: place || null,
+          minutes: minutes || 20,
+          communicate: communicate || "Text",
+          needsSummary: needsSummary || null,
+          shareNeeds: shareNeeds || false,
+          expiresAt: new Date(expiresAt),
+          events: {
+            create: {
+              event: "Request created",
+            },
+          },
+        },
+        include: {
+          requester: {
+            select: { name: true },
+          },
+        },
+      })
+      
+      console.log("[API] Request saved to database:", helpRequest.id)
+      
+      return NextResponse.json({
+        ok: true,
+        message: "Request published to the mesh",
+        source: "database",
+        request: {
+          id: helpRequest.id,
+          owner: helpRequest.requesterId,
+          requesterName: helpRequest.requester.name,
+          title: helpRequest.title,
+          status: helpRequest.status,
+          createdAt: helpRequest.createdAt.getTime(),
+        },
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      console.error("[API] Database error:", errorMessage, error)
+      return NextResponse.json(
+        { ok: false, message: `Database error: ${errorMessage}`, error: "DB_ERROR" },
+        { status: 500 }
+      )
     }
-    
-    // Fallback: use in-memory storage
-    const memRequest: MemoryRequest = {
-      id: requestId,
-      owner: owner || "anonymous",
-      requesterName: requesterName || "Someone",
-      title,
-      description: description || "",
-      category: category || "other",
-      mode: mode || "volunteer",
-      amount: amount || 0,
-      place: place || "",
-      minutes: minutes || 20,
-      status: "open",
-      communicate: communicate || "Text",
-      needsSummary: needsSummary || "",
-      shareNeeds: shareNeeds || false,
-      createdAt: now,
-      expiresAt,
-    }
-    
-    memoryRequests.set(requestId, memRequest)
-    
-    return NextResponse.json({
-      ok: true,
-      message: "Request published to the mesh",
-      source: "memory",
-      request: {
-        id: requestId,
-        owner: memRequest.owner,
-        requesterName: memRequest.requesterName,
-        title: memRequest.title,
-        status: "open",
-        createdAt: now,
-      },
-    })
   } catch (error) {
     console.error("Failed to create request:", error)
     return NextResponse.json(

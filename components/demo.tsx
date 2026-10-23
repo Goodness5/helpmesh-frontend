@@ -179,7 +179,7 @@ export async function sendRequest(draft: Draft): Promise<{ id: string | null; me
   
   // Publish to shared mesh API so other users can see it
   try {
-    await fetch("/api/mesh/requests", {
+    const meshRes = await fetch("/api/mesh/requests", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -198,8 +198,14 @@ export async function sendRequest(draft: Draft): Promise<{ id: string | null; me
         shareNeeds: draft.shareNeeds,
       }),
     })
-  } catch {
-    // Silent fail - local request still works
+    const meshData = await meshRes.json()
+    if (!meshData.ok) {
+      console.error("[Mesh] Failed to broadcast request:", meshData.message || meshData.error)
+    } else {
+      console.log("[Mesh] Request broadcasted:", meshData.source, meshData.request?.id)
+    }
+  } catch (err) {
+    console.error("[Mesh] Network error broadcasting request:", err)
   }
   
   if (!(liveChain && draft.mode === "sponsored" && chain)) return { id, message: created.message }
