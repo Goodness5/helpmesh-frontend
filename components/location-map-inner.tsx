@@ -1,8 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import L from "leaflet"
-import "leaflet/dist/leaflet.css"
+import { MapPin, Navigation, ExternalLink } from "lucide-react"
 
 interface LocationMapInnerProps {
   coords: { lat: number; lng: number }
@@ -11,129 +9,81 @@ interface LocationMapInnerProps {
   height: string
 }
 
-// Custom marker icons
-const requesterIcon = L.divIcon({
-  className: "custom-marker",
-  html: `<div style="
-    width: 32px;
-    height: 32px;
-    background: #25f497;
-    border: 3px solid #000;
-    border-radius: 50% 50% 50% 0;
-    transform: rotate(-45deg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  ">
-    <span style="transform: rotate(45deg); font-size: 14px;">📍</span>
-  </div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-})
-
-const helperIcon = L.divIcon({
-  className: "custom-marker",
-  html: `<div style="
-    width: 32px;
-    height: 32px;
-    background: #3b82f6;
-    border: 3px solid #000;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  ">
-    <span style="font-size: 14px;">👤</span>
-  </div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-})
+// Calculate distance between two points in meters
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000 // Earth's radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
 
 export function LocationMapInner({ coords, requesterName, helperLocation, height }: LocationMapInnerProps) {
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<L.Map | null>(null)
+  // Use OpenStreetMap static embed (no API key needed)
+  const zoom = 15
+  const bbox = 0.005 // Bounding box size
   
-  useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return
-    
-    // Initialize map
-    const map = L.map(mapRef.current, {
-      center: [coords.lat, coords.lng],
-      zoom: 15,
-      zoomControl: true,
-      attributionControl: false,
-    })
-    
-    mapInstanceRef.current = map
-    
-    // Add dark tile layer (CartoDB Dark Matter)
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      maxZoom: 19,
-    }).addTo(map)
-    
-    // Add requester marker
-    L.marker([coords.lat, coords.lng], { icon: requesterIcon })
-      .addTo(map)
-      .bindPopup(`<b>${requesterName}</b><br/>Needs help here`)
-    
-    // Add helper marker and route if helper location exists
-    if (helperLocation) {
-      L.marker([helperLocation.lat, helperLocation.lng], { icon: helperIcon })
-        .addTo(map)
-        .bindPopup("<b>You</b><br/>Your location")
-      
-      // Draw a line between helper and requester
-      const line = L.polyline([
-        [helperLocation.lat, helperLocation.lng],
-        [coords.lat, coords.lng]
-      ], {
-        color: "#25f497",
-        weight: 3,
-        opacity: 0.7,
-        dashArray: "10, 10",
-      }).addTo(map)
-      
-      // Fit bounds to show both markers
-      map.fitBounds(line.getBounds(), { padding: [50, 50] })
-      
-      // Calculate distance
-      const distance = map.distance([helperLocation.lat, helperLocation.lng], [coords.lat, coords.lng])
-      const distanceText = distance < 1000 
-        ? `${Math.round(distance)}m away`
-        : `${(distance / 1000).toFixed(1)}km away`
-      
-      // Add distance label at midpoint
-      const midLat = (helperLocation.lat + coords.lat) / 2
-      const midLng = (helperLocation.lng + coords.lng) / 2
-      L.marker([midLat, midLng], {
-        icon: L.divIcon({
-          className: "distance-label",
-          html: `<div style="
-            background: rgba(0,0,0,0.8);
-            color: #25f497;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-family: monospace;
-            white-space: nowrap;
-          ">${distanceText}</div>`,
-          iconSize: [100, 20],
-          iconAnchor: [50, 10],
-        })
-      }).addTo(map)
-    }
-    
-    return () => {
-      map.remove()
-      mapInstanceRef.current = null
-    }
-  }, [coords, requesterName, helperLocation])
+  // OpenStreetMap embed URL
+  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - bbox},${coords.lat - bbox},${coords.lng + bbox},${coords.lat + bbox}&layer=mapnik&marker=${coords.lat},${coords.lng}`
   
+  // Google Maps directions URL (opens in new tab)
+  const googleMapsUrl = helperLocation 
+    ? `https://www.google.com/maps/dir/${helperLocation.lat},${helperLocation.lng}/${coords.lat},${coords.lng}`
+    : `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
+  
+  // Calculate distance if helper location exists
+  const distance = helperLocation 
+    ? calculateDistance(helperLocation.lat, helperLocation.lng, coords.lat, coords.lng)
+    : null
+  const distanceText = distance !== null
+    ? distance < 1000 
+      ? `${Math.round(distance)}m away`
+      : `${(distance / 1000).toFixed(1)}km away`
+    : null
+
   return (
-    <div 
-      ref={mapRef}
-      className="rounded-xl overflow-hidden border border-zinc-800"
-      style={{ height, width: "100%" }}
-    />
+    <div className="space-y-2">
+      {/* Map iframe */}
+      <div 
+        className="relative rounded-xl overflow-hidden border border-zinc-800"
+        style={{ height }}
+      >
+        <iframe
+          title={`Location of ${requesterName}`}
+          src={osmEmbedUrl}
+          className="w-full h-full border-0"
+          style={{ filter: "invert(90%) hue-rotate(180deg)" }} // Dark mode effect
+          loading="lazy"
+        />
+        
+        {/* Overlay with info */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <MapPin className="size-4 text-[#25f497]" />
+              <span className="text-white">{requesterName}</span>
+              {distanceText && (
+                <span className="px-2 py-0.5 rounded-full bg-[#25f497]/20 text-[#25f497]">
+                  {distanceText}
+                </span>
+              )}
+            </div>
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#25f497] text-black text-xs font-mono font-semibold hover:bg-[#1ee088] transition-colors"
+            >
+              <Navigation className="size-3" />
+              Directions
+              <ExternalLink className="size-3" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -116,6 +116,34 @@ export function HelperBoard() {
     }
   }, [])
 
+  // Send message to requester
+  const sendMessage = useCallback(async (requestId: string, requesterName: string) => {
+    if (!messageText.trim()) return
+    
+    try {
+      const res = await fetch("/api/mesh/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId,
+          senderName: "Helper", // TODO: Use actual user name
+          content: messageText.trim(),
+        }),
+      })
+      const data = await res.json()
+      
+      if (data.ok) {
+        announce(`Message sent to ${requesterName}`)
+        setMessageText("")
+      } else {
+        announce(`Failed to send: ${data.message || "Unknown error"}`)
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err)
+      announce("Failed to send message. Check your connection.")
+    }
+  }, [messageText, announce])
+
   // Combine local open requests (not owned by me) with shared requests
   const localOpen = demo.requests.filter((request) => request.status === "open" && request.owner !== "me")
   
@@ -406,16 +434,16 @@ export function HelperBoard() {
                   onChange={(e) => setMessageText(e.target.value)}
                   placeholder="Type your message..."
                   className="flex-1 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#25f497]/50"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && messageText.trim()) {
+                      e.preventDefault()
+                      void sendMessage(msgRequest.id, msgRequest.requesterName)
+                    }
+                  }}
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!messageText.trim()) return
-                    // TODO: Send message via API
-                    announce(`Message sent to ${msgRequest.requesterName}: ${messageText}`)
-                    setMessageText("")
-                    // Optionally close or keep open for more messages
-                  }}
+                  onClick={() => void sendMessage(msgRequest.id, msgRequest.requesterName)}
                   disabled={!messageText.trim()}
                   className="px-4 py-3 rounded-xl bg-[#25f497] hover:bg-[#1ee088] disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-mono font-semibold transition-colors"
                 >
