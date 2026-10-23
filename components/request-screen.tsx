@@ -56,6 +56,15 @@ import { LiveLocation } from "@/components/live-location"
 const replies = ["I'm here", "I'm at the entrance", "Please wait 2 minutes", "I can't hear you, I'll text"]
 const reasons = ["I don't need help now", "I can't make it", "Something else"]
 
+interface ApiMessage {
+  id: string
+  requestId: string
+  senderId: string
+  senderName: string
+  content: string
+  createdAt: number
+}
+
 export function RequestScreen({ id }: { id: string }) {
   const announce = useAnnounce()
   const demo = useDemo()
@@ -71,11 +80,69 @@ export function RequestScreen({ id }: { id: string }) {
   const [customTip, setCustomTip] = useState("")
   const [reason, setReason] = useState(reasons[0])
   const [checkedIn, setCheckedIn] = useState(false)
+  
+  // Messages from database
+  const [apiMessages, setApiMessages] = useState<ApiMessage[]>([])
+  const [messageInput, setMessageInput] = useState("")
+  const [sendingMessage, setSendingMessage] = useState(false)
 
   const asHelper = request?.owner !== "me"
   const title = request ? headline(request, asHelper) : ""
   const statusKey = `${request?.id ?? ""}:${request?.status ?? ""}:${request?.escrow?.state ?? ""}:${request?.helperId ?? ""}`
   const told = useRef("")
+  
+  // Fetch messages from API
+  useEffect(() => {
+    if (!id) return
+    
+    async function fetchMessages() {
+      try {
+        const res = await fetch(`/api/mesh/messages?requestId=${id}`)
+        const data = await res.json()
+        if (data.ok && Array.isArray(data.messages)) {
+          setApiMessages(data.messages)
+        }
+      } catch {
+        // Silent fail
+      }
+    }
+    
+    fetchMessages()
+    // Poll for new messages every 3 seconds
+    const interval = setInterval(fetchMessages, 3000)
+    return () => clearInterval(interval)
+  }, [id])
+  
+  // Send message to API
+  async function sendApiMessage(content: string) {
+    if (!content.trim() || sendingMessage) return
+    
+    setSendingMessage(true)
+    try {
+      const res = await fetch("/api/mesh/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId: id,
+          senderName: asHelper ? "Helper" : "You",
+          content: content.trim(),
+        }),
+      })
+      const data = await res.json()
+      
+      if (data.ok && data.message) {
+        setApiMessages((prev) => [...prev, data.message])
+        setMessageInput("")
+        announce(`Sent: ${content}`)
+      } else {
+        announce("Failed to send message")
+      }
+    } catch {
+      announce("Network error sending message")
+    } finally {
+      setSendingMessage(false)
+    }
+  }
 
   useEffect(() => {
     if (!demo.ready) return
@@ -592,27 +659,30 @@ export function RequestScreen({ id }: { id: string }) {
               </h2>
             </div>
 
-            {request.messages.length === 0 ? (
+            {apiMessages.length === 0 ? (
               <p className="text-xs font-mono text-zinc-500">
                 No messages yet. Send a quick update below.
               </p>
             ) : (
               <div className="space-y-2.5 max-h-64 overflow-y-auto">
-                {request.messages.map((message, index) => (
-                  <div
-                    key={`${message.body}-${index}`}
-                    className={`p-3.5 rounded-2xl font-mono text-xs sm:text-sm max-w-[85%] ${
-                      message.from === "You"
-                        ? "ml-auto bg-[#25f497]/15 border border-[#25f497]/30 text-zinc-100"
-                        : "mr-auto bg-zinc-900 border border-zinc-800 text-zinc-200"
-                    }`}
-                  >
-                    <strong className={message.from === "You" ? "text-[#25f497]" : "text-zinc-400"}>
-                      {message.from}:{" "}
-                    </strong>
-                    <span>{message.body}</span>
-                  </div>
-                ))}
+                {apiMessages.map((message) => {
+                  const isMe = message.senderName === "You" || message.senderName === (asHelper ? "Helper" : "You")
+                  return (
+                    <div
+                      key={message.id}
+                      className={`p-3.5 rounded-2xl font-mono text-xs sm:text-sm max-w-[85%] ${
+                        isMe
+                          ? "ml-auto bg-[#25f497]/15 border border-[#25f497]/30 text-zinc-100"
+                          : "mr-auto bg-zinc-900 border border-zinc-800 text-zinc-200"
+                      }`}
+                    >
+                      <strong className={isMe ? "text-[#25f497]" : "text-zinc-400"}>
+                        {message.senderName}:{" "}
+                      </strong>
+                      <span>{message.content}</span>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
@@ -625,15 +695,38 @@ export function RequestScreen({ id }: { id: string }) {
                   <button
                     key={reply}
                     type="button"
-                    onClick={() => {
-                      chat(request.id, asHelper ? "Helper" : "You", reply)
-                      run(`Sent: ${reply}`)
-                    }}
-                    className="px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition-colors"
+                    onClick={() => void sendApiMessage(reply)}
+                    disabled={sendingMessage}
+                    className="px-3.5 py-1.5 rounded-full border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 font-mono text-xs transition-colors disabled:opacity-50"
                   >
                     {reply}
                   </button>
                 ))}
+              </div>
+              
+              {/* Message input */}
+              <div className="flex gap-2 pt-2">
+                <input
+                  type="text"
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && messageInput.trim()) {
+                      e.preventDefault()
+                      void sendApiMessage(messageInput)
+                    }
+                  }}
+                  placeholder="Type a message..."
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#25f497]/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => void sendApiMessage(messageInput)}
+                  disabled={!messageInput.trim() || sendingMessage}
+                  className="px-4 py-2.5 rounded-xl bg-[#25f497] hover:bg-[#1ee088] disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-mono font-semibold transition-colors"
+                >
+                  <Send className="size-4" />
+                </button>
               </div>
             </div>
 

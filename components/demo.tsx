@@ -256,13 +256,93 @@ export function hold(id: string) {
 
 export function choose(id: string, helperId: string) {
   return guard(async () => {
-    const request = requestById(id)
+    let request = requestById(id)
+    
+    // If request not in local state, it might be a shared request from the API
+    // Import it to local state first
+    if (!request) {
+      try {
+        // Update status in the database
+        const res = await fetch("/api/mesh/requests", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            status: "assigned",
+            helperId: helperId === "me" ? "helper" : helperId,
+            helperName: helperId === "me" ? memory.trustedName || "A helper" : undefined,
+          }),
+        })
+        const data = await res.json()
+        
+        if (!data.ok) {
+          console.error("[Choose] API error:", data.message)
+          return data.message || "Could not accept this request."
+        }
+        
+        // Create a minimal local request for navigation
+        const localRequest: HelpRequest = {
+          id,
+          owner: "shared", // Mark as not mine
+          requesterName: "Someone",
+          title: "Accepted Request",
+          description: "",
+          category: "other",
+          mode: "volunteer",
+          amount: 0,
+          place: "",
+          minutes: 20,
+          status: "assigned",
+          helperId: helperId === "me" ? "me" : helperId,
+          communicate: "Text",
+          needsSummary: "",
+          shareNeeds: false,
+          example: false,
+          events: ["You accepted this request."],
+          messages: [],
+          startedAt: null,
+          escrow: null,
+          chainKey: null,
+          salt: null,
+        }
+        
+        memory = {
+          ...memory,
+          requests: [...memory.requests, localRequest],
+        }
+        emit(false)
+        
+        return "You accepted! Opening the session now."
+      } catch (err) {
+        console.error("[Choose] Network error:", err)
+        return "Network error. Please try again."
+      }
+    }
+    
+    // Original flow for local requests
     if (usesChain(request) && request.escrow) {
       const assigned = await chainAssign(request.chainKey as Hex, helperId)
       if (!assigned.ok) return assigned.message
       const snap = await readMesh(accountFor("you").address, request.chainKey as Hex)
       if (snap.escrowState < 2) return "The helper was not recorded yet. Try again."
     }
+    
+    // Also update in database if this was a shared request
+    try {
+      await fetch("/api/mesh/requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          status: "assigned",
+          helperId: helperId === "me" ? "helper" : helperId,
+          helperName: helperId === "me" ? memory.trustedName || "A helper" : undefined,
+        }),
+      })
+    } catch {
+      // Continue even if API fails - local state will work
+    }
+    
     return change((state) => chooseHelper(state, id, helperId))
   })
 }

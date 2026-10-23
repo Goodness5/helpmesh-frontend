@@ -3,6 +3,7 @@ import { Atkinson_Hyperlegible, Geist_Mono, Lexend } from "next/font/google"
 import { Suspense } from "react"
 import { AnnounceProvider } from "@/components/announce"
 import { HelpmeshPrivyProvider } from "@/components/providers/privy-provider"
+import { MeshProvider } from "@/lib/mesh-context"
 import { Shell } from "@/components/shell"
 import { PWAInstall, ServiceWorkerRegistration } from "@/components/pwa-install"
 import "./globals.css"
@@ -86,11 +87,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <AnnounceProvider>
           <HelpmeshPrivyProvider>
-            <Suspense fallback={null}>
-              <Shell>{children}</Shell>
-            </Suspense>
-            <ServiceWorkerRegistration />
-            <PWAInstall />
+            <MeshProvider>
+              <Suspense fallback={null}>
+                <Shell>{children}</Shell>
+              </Suspense>
+              <ServiceWorkerRegistration />
+              <PWAInstall />
+            </MeshProvider>
           </HelpmeshPrivyProvider>
         </AnnounceProvider>
       </body>

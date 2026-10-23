@@ -2,13 +2,12 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 import { useAnnounce } from "@/components/announce"
 import { PageTitle } from "@/components/page-title"
-import { choose, useDemo } from "@/components/demo"
 import { Dialog } from "@/components/dialog"
 import { LocationMap, useMyLocation, parseCoordinates } from "@/components/location-map"
-import { modeLabel, type Mode } from "@/lib/model"
+import { useMesh, type HelpRequest } from "@/lib/mesh-context"
 import {
   Compass,
   Eye,
@@ -25,22 +24,11 @@ import {
   Send,
 } from "lucide-react"
 
-interface SharedRequest {
-  id: string
-  owner: string
-  requesterName: string
-  title: string
-  description: string
-  category: string
-  mode: Mode
-  amount: number
-  place: string
-  minutes: number
-  status: string
-  communicate: string
-  needsSummary: string
-  shareNeeds: boolean
-  createdAt: number
+function modeLabel(mode: string, amount: number): string {
+  if (mode === "volunteer") return "Volunteer"
+  if (mode === "reward") return amount > 0 ? `$${(amount / 1_000_000).toFixed(2)} Reward` : "Reward"
+  if (mode === "sponsored") return "Sponsored"
+  return mode
 }
 
 function CategoryIcon({ category }: { category: string }) {
@@ -61,110 +49,51 @@ function CategoryIcon({ category }: { category: string }) {
 }
 
 export function HelperBoard() {
-  const demo = useDemo()
+  const { openRequests, loading, refresh, acceptRequest, sendMessage: meshSendMessage, userName } = useMesh()
   const announce = useAnnounce()
   const router = useRouter()
   const [acceptId, setAcceptId] = useState<string | null>(null)
   const [messageId, setMessageId] = useState<string | null>(null)
   const [messageText, setMessageText] = useState("")
-  const [sharedRequests, setSharedRequests] = useState<SharedRequest[]>([])
-  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const { location: myLocation } = useMyLocation()
-
-  // Fetch shared requests from the mesh API
-  useEffect(() => {
-    let mounted = true
-    
-    async function fetchRequests() {
-      try {
-        const res = await fetch("/api/mesh/requests?excludeOwner=me")
-        const data = await res.json()
-        if (mounted && data.ok && Array.isArray(data.requests)) {
-          setSharedRequests(data.requests)
-        }
-      } catch {
-        // Silent fail
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-    
-    fetchRequests()
-    // Refresh every 10 seconds
-    const interval = setInterval(fetchRequests, 10000)
-    
-    return () => {
-      mounted = false
-      clearInterval(interval)
-    }
-  }, [])
 
   // Manual refresh function
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
-    try {
-      const res = await fetch("/api/mesh/requests?excludeOwner=me")
-      const data = await res.json()
-      if (data.ok && Array.isArray(data.requests)) {
-        setSharedRequests(data.requests)
-      }
-    } catch {
-      // Silent fail
-    } finally {
-      setRefreshing(false)
-    }
-  }, [])
+    await refresh()
+    setRefreshing(false)
+  }, [refresh])
 
   // Send message to requester
-  const sendMessage = useCallback(async (requestId: string, requesterName: string) => {
+  const sendMessageToRequester = useCallback(async (requestId: string, requesterName: string) => {
     if (!messageText.trim()) return
     
-    try {
-      const res = await fetch("/api/mesh/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestId,
-          senderName: "Helper", // TODO: Use actual user name
-          content: messageText.trim(),
-        }),
-      })
-      const data = await res.json()
-      
-      if (data.ok) {
-        announce(`Message sent to ${requesterName}`)
-        setMessageText("")
-      } else {
-        announce(`Failed to send: ${data.message || "Unknown error"}`)
-      }
-    } catch (err) {
-      console.error("Failed to send message:", err)
-      announce("Failed to send message. Check your connection.")
+    const result = await meshSendMessage(requestId, messageText.trim())
+    
+    if (result.ok) {
+      announce(`Message sent to ${requesterName}`)
+      setMessageText("")
+    } else {
+      announce(`Failed to send: ${result.message}`)
     }
-  }, [messageText, announce])
+  }, [messageText, meshSendMessage, announce])
 
-  // Combine local open requests (not owned by me) with shared requests
-  const localOpen = demo.requests.filter((request) => request.status === "open" && request.owner !== "me")
-  
-  // Merge and dedupe by ID
-  const allOpenIds = new Set<string>()
-  const allOpen: Array<SharedRequest | typeof localOpen[0]> = []
-  
-  for (const req of sharedRequests) {
-    if (!allOpenIds.has(req.id)) {
-      allOpenIds.add(req.id)
-      allOpen.push(req)
+  // Handle accept
+  const handleAccept = useCallback(async (request: HelpRequest) => {
+    announce(`Accepting help request from ${request.requesterName}`)
+    const result = await acceptRequest(request.id)
+    
+    if (result.ok) {
+      setAcceptId(null)
+      announce(result.message)
+      router.push(`/request/${request.id}`)
+    } else {
+      announce(result.message)
     }
-  }
-  for (const req of localOpen) {
-    if (!allOpenIds.has(req.id)) {
-      allOpenIds.add(req.id)
-      allOpen.push(req as unknown as SharedRequest)
-    }
-  }
-  
-  const open = allOpen
+  }, [acceptRequest, announce, router])
+
+  const open = openRequests
   const chosen = open.find((request) => request.id === acceptId)
 
   return (
@@ -351,17 +280,7 @@ export function HelperBoard() {
         <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-zinc-900">
           <button
             type="button"
-            onClick={() => {
-              void (async () => {
-                if (!chosen) return
-                const id = chosen.id
-                announce(`Accepting help request from ${chosen.requesterName}`)
-                const message = await choose(id, "me")
-                setAcceptId(null)
-                announce(message)
-                router.push(`/request/${id}`)
-              })()
-            }}
+            onClick={() => chosen && handleAccept(chosen)}
             aria-label={`Confirm that you will help ${chosen?.requesterName}`}
             className="inline-flex items-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-mono font-semibold px-6 py-3 rounded-full transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] min-h-[48px]"
           >
@@ -437,13 +356,13 @@ export function HelperBoard() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && messageText.trim()) {
                       e.preventDefault()
-                      void sendMessage(msgRequest.id, msgRequest.requesterName)
+                      void sendMessageToRequester(msgRequest.id, msgRequest.requesterName)
                     }
                   }}
                 />
                 <button
                   type="button"
-                  onClick={() => void sendMessage(msgRequest.id, msgRequest.requesterName)}
+                  onClick={() => void sendMessageToRequester(msgRequest.id, msgRequest.requesterName)}
                   disabled={!messageText.trim()}
                   className="px-4 py-3 rounded-xl bg-[#25f497] hover:bg-[#1ee088] disabled:bg-zinc-800 disabled:text-zinc-600 text-black font-mono font-semibold transition-colors"
                 >
