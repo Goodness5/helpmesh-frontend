@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Download, X, Smartphone, WifiOff } from "lucide-react"
+import { Download, X, Smartphone } from "lucide-react"
 import { useAnnounce } from "@/components/announce"
 
 interface BeforeInstallPromptEvent extends Event {
@@ -23,33 +23,11 @@ function wasBannerDismissed(): boolean {
   return sessionStorage.getItem("pwa-banner-dismissed") === "true"
 }
 
-// Custom hook to track online status without SSR hydration issues
-function useIsOnline() {
-  const getOnlineStatus = () => typeof navigator !== "undefined" ? navigator.onLine : true
-  const [isOnline, setIsOnline] = useState(getOnlineStatus)
-
-  useEffect(() => {
-    function handleOnline() { setIsOnline(true) }
-    function handleOffline() { setIsOnline(false) }
-
-    window.addEventListener("online", handleOnline)
-    window.addEventListener("offline", handleOffline)
-
-    return () => {
-      window.removeEventListener("online", handleOnline)
-      window.removeEventListener("offline", handleOffline)
-    }
-  }, [])
-
-  return isOnline
-}
-
 export function PWAInstall() {
   const announce = useAnnounce()
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showBanner, setShowBanner] = useState(() => !wasBannerDismissed())
   const [isInstalled, setIsInstalled] = useState(checkIfInstalled)
-  const isOnline = useIsOnline()
 
   useEffect(() => {
     // Listen for install prompt
@@ -101,24 +79,6 @@ export function PWAInstall() {
     setShowBanner(false)
     // Don't show again for this session
     sessionStorage.setItem("pwa-banner-dismissed", "true")
-  }
-
-
-  // Offline indicator - only show when actually offline
-  if (!isOnline) {
-    return (
-      <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500/90 text-black px-4 py-2 text-center font-mono text-xs flex items-center justify-center gap-2 backdrop-blur-sm">
-        <WifiOff className="size-4" aria-hidden="true" />
-        <span>You&apos;re offline. Some features may be unavailable.</span>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="ml-2 px-2 py-0.5 bg-black/20 rounded text-[10px] hover:bg-black/30"
-        >
-          Refresh
-        </button>
-      </div>
-    )
   }
 
   // Don't show install banner if already installed or no prompt available
@@ -223,5 +183,3 @@ export function ServiceWorkerRegistration() {
   return null
 }
 
-// Online Status Hook (exported for use in other components)
-export { useIsOnline as useOnlineStatus }
