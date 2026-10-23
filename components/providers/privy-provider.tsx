@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode } from "react"
-import { PrivyProvider, usePrivy, useWallets } from "@privy-io/react-auth"
+import { PrivyProvider, usePrivy, useWallets, useConnectWallet } from "@privy-io/react-auth"
 import { baseSepolia } from "viem/chains"
 import { accountFor } from "@/lib/chain/session"
 
@@ -13,6 +13,12 @@ const isRealPrivy = Boolean(
   !rawAppId.includes("demo")
 )
 
+export interface AccountAbstractionWallet {
+  address: string
+  walletClientType?: string
+  connectorType?: string
+}
+
 export interface AccountAbstractionState {
   ready: boolean
   authenticated: boolean
@@ -21,10 +27,13 @@ export interface AccountAbstractionState {
     id: string
     email?: { address: string }
     phone?: { number: string }
-    wallet?: { address: string }
+    wallet?: { address: string; walletClientType?: string }
   } | null
-  wallets: Array<{ address: string }>
+  wallets: AccountAbstractionWallet[]
+  primaryWallet: AccountAbstractionWallet | null
+  connectionType: "web3_wallet" | "account_abstraction" | "device_demo" | null
   login: () => void
+  connectWallet: () => void
   logout: () => Promise<void>
 }
 
@@ -47,7 +56,17 @@ export function HelpmeshPrivyProvider({ children }: { children: ReactNode }) {
           appearance: {
             theme: "dark",
             accentColor: "#25f497",
-            showWalletLoginFirst: false,
+            showWalletLoginFirst: true,
+            walletList: [
+              "detected_wallets",
+              "metamask",
+              "coinbase_wallet",
+              "rainbow",
+              "wallet_connect",
+            ],
+            walletChainType: "ethereum-only",
+            landingHeader: "Connect Wallet & Sign In",
+            loginMessage: "Connect an existing Web3 wallet or sign in with an Account Abstraction passkey.",
           },
           embeddedWallets: {
             ethereum: {
@@ -56,7 +75,7 @@ export function HelpmeshPrivyProvider({ children }: { children: ReactNode }) {
           },
           defaultChain: baseSepolia,
           supportedChains: [baseSepolia],
-          loginMethods: ["email", "wallet", "sms"],
+          loginMethods: ["wallet", "email", "sms"],
         }}
       >
         <RealPrivyBridge>{children}</RealPrivyBridge>
@@ -70,6 +89,34 @@ export function HelpmeshPrivyProvider({ children }: { children: ReactNode }) {
 function RealPrivyBridge({ children }: { children: ReactNode }) {
   const privy = usePrivy()
   const { wallets } = useWallets()
+  const { connectWallet } = useConnectWallet()
+
+  const mappedWallets: AccountAbstractionWallet[] = wallets.map((w) => ({
+    address: w.address,
+    walletClientType: w.walletClientType,
+    connectorType: w.connectorType,
+  }))
+
+  const primaryWallet: AccountAbstractionWallet | null =
+    mappedWallets[0] ??
+    (privy.user?.wallet
+      ? {
+          address: privy.user.wallet.address,
+          walletClientType: privy.user.wallet.walletClientType,
+          connectorType: privy.user.wallet.connectorType,
+        }
+      : null)
+
+  const isEmbedded =
+    primaryWallet?.walletClientType === "privy" ||
+    primaryWallet?.walletClientType === "privy-v2"
+
+  const connectionType: "web3_wallet" | "account_abstraction" | "device_demo" | null =
+    privy.authenticated
+      ? isEmbedded
+        ? "account_abstraction"
+        : "web3_wallet"
+      : null
 
   const value: AccountAbstractionState = {
     ready: privy.ready,
@@ -80,11 +127,19 @@ function RealPrivyBridge({ children }: { children: ReactNode }) {
           id: privy.user.id,
           email: privy.user.email ? { address: privy.user.email.address } : undefined,
           phone: privy.user.phone ? { number: privy.user.phone.number } : undefined,
-          wallet: privy.user.wallet ? { address: privy.user.wallet.address } : undefined,
+          wallet: privy.user.wallet
+            ? {
+                address: privy.user.wallet.address,
+                walletClientType: privy.user.wallet.walletClientType,
+              }
+            : undefined,
         }
       : null,
-    wallets: wallets.map((w) => ({ address: w.address })),
+    wallets: mappedWallets,
+    primaryWallet,
+    connectionType,
     login: privy.login,
+    connectWallet,
     logout: privy.logout,
   }
 
@@ -98,6 +153,17 @@ function MockPrivyBridge({ children }: { children: ReactNode }) {
       return localStorage.getItem("helpmesh.aa.auth") === "true"
     } catch {
       return false
+    }
+  })
+
+  const [connectionType, setConnectionType] = useState<"web3_wallet" | "account_abstraction" | "device_demo" | null>(() => {
+    if (typeof window === "undefined") return null
+    try {
+      const auth = localStorage.getItem("helpmesh.aa.auth") === "true"
+      if (!auth) return null
+      return (localStorage.getItem("helpmesh.aa.type") as "web3_wallet" | "account_abstraction") || "account_abstraction"
+    } catch {
+      return null
     }
   })
 
@@ -121,17 +187,38 @@ function MockPrivyBridge({ children }: { children: ReactNode }) {
 
   function login() {
     setAuthenticated(true)
+    setConnectionType("account_abstraction")
     try {
       localStorage.setItem("helpmesh.aa.auth", "true")
+      localStorage.setItem("helpmesh.aa.type", "account_abstraction")
+    } catch {}
+  }
+
+  function connectWallet() {
+    setAuthenticated(true)
+    setConnectionType("web3_wallet")
+    try {
+      localStorage.setItem("helpmesh.aa.auth", "true")
+      localStorage.setItem("helpmesh.aa.type", "web3_wallet")
     } catch {}
   }
 
   async function logout() {
     setAuthenticated(false)
+    setConnectionType(null)
     try {
       localStorage.setItem("helpmesh.aa.auth", "false")
+      localStorage.removeItem("helpmesh.aa.type")
     } catch {}
   }
+
+  const primaryWallet: AccountAbstractionWallet | null =
+    authenticated && deviceAddress
+      ? {
+          address: deviceAddress,
+          walletClientType: connectionType === "web3_wallet" ? "metamask" : "privy",
+        }
+      : null
 
   const value: AccountAbstractionState = {
     ready: true,
@@ -141,11 +228,17 @@ function MockPrivyBridge({ children }: { children: ReactNode }) {
       ? {
           id: `privy:did:device:${deviceAddress.slice(2, 10)}`,
           email: { address: userEmail },
-          wallet: { address: deviceAddress },
+          wallet: {
+            address: deviceAddress,
+            walletClientType: connectionType === "web3_wallet" ? "metamask" : "privy",
+          },
         }
       : null,
-    wallets: authenticated && deviceAddress ? [{ address: deviceAddress }] : [],
+    wallets: primaryWallet ? [primaryWallet] : [],
+    primaryWallet,
+    connectionType,
     login,
+    connectWallet,
     logout,
   }
 
