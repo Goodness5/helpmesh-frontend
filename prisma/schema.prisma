@@ -19,6 +19,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
+  // Profile - human details
+  age           Int?
+  bio           String?   // Short description they want to share
+  pronouns      String?   // he/him, she/her, they/them
+  city          String?   // General location (not exact)
+  
   // Profile settings
   role          String?   // "help" | "helper" | "fund"
   disabilities  String[]  @default([])
@@ -28,6 +34,7 @@ model User {
   
   // Reputation
   completions   Int       @default(0)
+  helpedCount   Int       @default(0) // Times they've been helped
   verified      Boolean   @default(false)
   skills        String[]  @default([])
   

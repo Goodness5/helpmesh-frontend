@@ -10,6 +10,13 @@ export interface HelpRequest {
   id: string
   owner: string
   requesterName: string
+  requesterAge?: number | null
+  requesterBio?: string | null
+  requesterPronouns?: string | null
+  requesterCity?: string | null
+  requesterCompletions?: number
+  requesterHelpedCount?: number
+  requesterVerified?: boolean
   title: string
   description: string
   category: string
@@ -25,6 +32,52 @@ export interface HelpRequest {
   shareNeeds: boolean
   createdAt: number
   expiresAt: number | null
+}
+
+// Generate a human story from request data
+export function humanStory(request: HelpRequest): string {
+  const name = request.requesterName || "Someone"
+  const age = request.requesterAge
+  const city = request.requesterCity
+  const pronouns = request.requesterPronouns
+  
+  // Determine pronoun usage
+  let pronoun = "they"
+  let possessive = "their"
+  if (pronouns === "he/him") {
+    pronoun = "he"
+    possessive = "his"
+  } else if (pronouns === "she/her") {
+    pronoun = "she"
+    possessive = "her"
+  }
+  
+  // Build the story
+  let story = name
+  if (age) story += `, ${age} years old`
+  if (city) story += ` from ${city}`
+  
+  // Add the need
+  const category = request.category?.toLowerCase() || ""
+  if (category.includes("mobility") || category.includes("stair")) {
+    story += `, needs help with mobility`
+  } else if (category.includes("vision") || category.includes("read")) {
+    story += `, needs help seeing or reading something`
+  } else if (category.includes("carry") || category.includes("errand")) {
+    story += `, needs help carrying something`
+  } else if (category.includes("companion")) {
+    story += `, would like some company`
+  } else {
+    story += `, needs a helping hand`
+  }
+  
+  // Add history
+  const helpedCount = request.requesterHelpedCount || 0
+  if (helpedCount > 0) {
+    story += `. Has been helped ${helpedCount} time${helpedCount > 1 ? "s" : ""} before`
+  }
+  
+  return story
 }
 
 export interface Message {

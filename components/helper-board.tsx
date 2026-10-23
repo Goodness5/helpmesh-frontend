@@ -7,7 +7,8 @@ import { useAnnounce } from "@/components/announce"
 import { PageTitle } from "@/components/page-title"
 import { Dialog } from "@/components/dialog"
 import { LocationMap, useMyLocation, parseCoordinates } from "@/components/location-map"
-import { useMesh, type HelpRequest } from "@/lib/mesh-context"
+import { useMesh, humanStory, type HelpRequest } from "@/lib/mesh-context"
+import { Heart, ShieldCheck, Users } from "lucide-react"
 import {
   Compass,
   Eye,
@@ -180,6 +181,41 @@ export function HelperBoard() {
                     <Clock className="size-3" />
                     ~{request.minutes}m
                   </span>
+                </div>
+              </div>
+
+              {/* Human Story */}
+              <div className="rounded-2xl bg-gradient-to-r from-zinc-900/80 to-zinc-900/40 border border-zinc-800/50 p-4 space-y-3">
+                <p className="text-base font-mono text-zinc-200 leading-relaxed">
+                  {humanStory(request)}
+                </p>
+                
+                {request.requesterBio && (
+                  <p className="text-sm font-mono text-zinc-400 italic">
+                    &ldquo;{request.requesterBio}&rdquo;
+                  </p>
+                )}
+                
+                {/* Trust indicators */}
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  {request.requesterVerified && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-mono text-[#25f497]">
+                      <ShieldCheck className="size-3.5" />
+                      Verified identity
+                    </span>
+                  )}
+                  {(request.requesterHelpedCount ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-mono text-zinc-400">
+                      <Heart className="size-3.5" />
+                      Helped {request.requesterHelpedCount} time{(request.requesterHelpedCount ?? 0) > 1 ? "s" : ""} before
+                    </span>
+                  )}
+                  {(request.requesterCompletions ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-mono text-zinc-400">
+                      <Users className="size-3.5" />
+                      Helped others {request.requesterCompletions} time{(request.requesterCompletions ?? 0) > 1 ? "s" : ""}
+                    </span>
+                  )}
                 </div>
               </div>
 
