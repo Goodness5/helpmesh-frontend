@@ -65,10 +65,32 @@ interface ApiMessage {
   createdAt: number
 }
 
+// Minimal request type for API data
+interface ApiRequest {
+  id: string
+  owner: string
+  requesterName: string
+  title: string
+  description: string
+  category: string
+  mode: string
+  amount: number
+  place: string
+  minutes: number
+  status: string
+  helperId?: string | null
+  helperName?: string | null
+  communicate: string
+  createdAt: number
+}
+
 export function RequestScreen({ id }: { id: string }) {
   const announce = useAnnounce()
   const demo = useDemo()
-  const request = demo.requests.find((item) => item.id === id)
+  const localRequest = demo.requests.find((item) => item.id === id)
+  const [apiRequest, setApiRequest] = useState<ApiRequest | null>(null)
+  const [loadingRequest, setLoadingRequest] = useState(!localRequest)
+  
   const [holdOpen, setHoldOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [callOpen, setCallOpen] = useState(false)
@@ -85,6 +107,62 @@ export function RequestScreen({ id }: { id: string }) {
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([])
   const [messageInput, setMessageInput] = useState("")
   const [sendingMessage, setSendingMessage] = useState(false)
+
+  // Fetch request from API if not found locally
+  useEffect(() => {
+    if (localRequest || !id) return
+    
+    async function fetchRequest() {
+      setLoadingRequest(true)
+      try {
+        // Fetch from the requests list and find our ID
+        const res = await fetch(`/api/mesh/requests?status=open,assigned,started,done`)
+        const data = await res.json()
+        if (data.ok && Array.isArray(data.requests)) {
+          const found = data.requests.find((r: ApiRequest) => r.id === id)
+          if (found) {
+            setApiRequest(found)
+          }
+        }
+      } catch {
+        // Silent fail
+      } finally {
+        setLoadingRequest(false)
+      }
+    }
+    
+    fetchRequest()
+    // Poll for updates
+    const interval = setInterval(fetchRequest, 5000)
+    return () => clearInterval(interval)
+  }, [id, localRequest])
+
+  // Use local request if available, otherwise API request
+  // Create a compatible request object from API data
+  const request = localRequest ?? (apiRequest ? {
+    id: apiRequest.id,
+    owner: apiRequest.owner,
+    requesterName: apiRequest.requesterName,
+    title: apiRequest.title,
+    description: apiRequest.description,
+    category: apiRequest.category,
+    mode: apiRequest.mode as "volunteer" | "reward" | "sponsored",
+    amount: apiRequest.amount,
+    place: apiRequest.place,
+    minutes: apiRequest.minutes,
+    status: apiRequest.status as "open" | "assigned" | "started" | "awaiting_confirm" | "done" | "cancelled" | "disputed" | "refunded",
+    helperId: apiRequest.helperId || null,
+    communicate: apiRequest.communicate,
+    needsSummary: "",
+    shareNeeds: false,
+    escrow: null,
+    chainKey: null,
+    salt: null,
+    example: false,
+    events: [] as string[],
+    messages: [] as { from: string; body: string }[],
+    startedAt: null,
+  } : undefined)
 
   const asHelper = request?.owner !== "me"
   const title = request ? headline(request, asHelper) : ""
@@ -164,6 +242,15 @@ export function RequestScreen({ id }: { id: string }) {
       <div className="w-full space-y-4 py-8">
         <PageTitle>Loading this request</PageTitle>
         <p className="text-sm font-mono text-zinc-500 animate-pulse">Syncing on-chain session...</p>
+      </div>
+    )
+  }
+
+  if (loadingRequest) {
+    return (
+      <div className="w-full space-y-6 py-8 flex flex-col items-center justify-center">
+        <div className="size-12 rounded-full border-4 border-zinc-800 border-t-[#25f497] animate-spin" />
+        <p className="text-sm font-mono text-zinc-400">Loading request...</p>
       </div>
     )
   }

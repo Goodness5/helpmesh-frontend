@@ -262,6 +262,8 @@ export function MeshProvider({ children }: { children: ReactNode }) {
 
   // Accept a request (as helper)
   const acceptRequest = useCallback(async (requestId: string) => {
+    console.log("[Mesh] Accepting request:", requestId, "as user:", userId, userName)
+    
     try {
       const res = await fetch("/api/mesh/requests", {
         method: "PATCH",
@@ -275,10 +277,10 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       })
       
       const result = await res.json()
+      console.log("[Mesh] Accept response:", result)
       
       if (result.ok) {
         await refresh()
-        await refreshRequest(requestId)
         return { ok: true, message: "You accepted the request!" }
       }
       
@@ -287,7 +289,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       console.error("[Mesh] Accept error:", err)
       return { ok: false, message: "Network error" }
     }
-  }, [userId, userName, refresh, refreshRequest])
+  }, [userId, userName, refresh])
 
   // Start help session
   const startHelp = useCallback(async (requestId: string) => {

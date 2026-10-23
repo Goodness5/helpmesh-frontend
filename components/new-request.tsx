@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { useAnnounce } from "@/components/announce"
 import { PageTitle } from "@/components/page-title"
-import { sendRequest, useDemo } from "@/components/demo"
+import { useMesh } from "@/lib/mesh-context"
 import { formatTestMoney, looksLikeEmergency, parseAmount, TEMPLATES, type Mode } from "@/lib/model"
 import {
-  MapPin,
   ArrowUpRight,
   ArrowRight,
   ArrowLeft,
@@ -23,6 +22,7 @@ import {
   Eye,
   Radio,
 } from "lucide-react"
+import { LocationPicker } from "@/components/location-picker"
 
 const chips = [5, 10, 20]
 const blank = { title: "", description: "", place: "", mode: "volunteer" as Mode, amountText: "10", category: "other", minutes: 20 }
@@ -78,7 +78,7 @@ function TemplateIcon({ id }: { id: string }) {
 export function NewRequest() {
   const router = useRouter()
   const announce = useAnnounce()
-  const demo = useDemo()
+  const mesh = useMesh()
   const summaryRef = useRef<HTMLDivElement>(null)
   const saved = useSyncExternalStore(subscribeDraft, currentDraft, () => blank)
   const [step, setStep] = useState<1 | 2 | "emergency">(1)
@@ -95,36 +95,6 @@ export function NewRequest() {
     if (template.id === "other") document.getElementById("need")?.focus()
   }
 
-  function locate() {
-    if (!navigator.geolocation) {
-      announce("Location is not available. You can type a place.")
-      return
-    }
-    announce("Getting your precise location...")
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude, accuracy } = position.coords
-        // Store coords for sharing with helpers
-        const locationText = `GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${Math.round(accuracy)}m)`
-        patchDraft({ place: locationText })
-        announce(`Location found with ${Math.round(accuracy)} meter accuracy.`)
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          announce("Location permission denied. Please enable it in browser settings, or type a place.")
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          announce("GPS unavailable. Make sure location is enabled on your device.")
-        } else {
-          announce("Location timed out. Try again or type a place.")
-        }
-      },
-      {
-        enableHighAccuracy: true, // Use GPS, not just WiFi/cell
-        timeout: 15000,           // Wait up to 15 seconds
-        maximumAge: 0,            // Don't use cached position
-      }
-    )
-  }
 
   function review() {
     const next: { id: string; message: string }[] = []
@@ -148,9 +118,8 @@ export function NewRequest() {
 
   async function submit() {
     const amount = mode === "volunteer" ? 0 : parseAmount(amountText) ?? 0
-    const communicate = demo.profile.communicate.length ? demo.profile.communicate.join(", ") : "Text"
     announce("Sending your request.")
-    const result = await sendRequest({
+    const result = await mesh.createRequest({
       title: title.trim() || description.trim().slice(0, 60),
       description: description.trim(),
       category,
@@ -158,12 +127,10 @@ export function NewRequest() {
       amount,
       place: place.trim(),
       minutes,
-      communicate,
-      needsSummary: demo.profile.needsSummary,
-      shareNeeds: demo.profile.shareWithHelper,
+      communicate: "Text", // Default to text
     })
-    announce(result.message, result.id ? "polite" : "assertive")
-    if (!result.id) return
+    announce(result.message, result.ok ? "polite" : "assertive")
+    if (!result.ok || !result.id) return
     clearDraft()
     router.push(`/request/${result.id}`)
   }
@@ -388,26 +355,13 @@ export function NewRequest() {
         {/* Location Field */}
         <div className="space-y-2">
           <label htmlFor="place" className="block text-xs font-mono uppercase tracking-widest text-zinc-400">
-            Where? (station, corner, building)
+            Where? (search address or use GPS)
           </label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              id="place"
-              autoComplete="street-address"
-              value={place}
-              onChange={(event) => patchDraft({ place: event.target.value })}
-              placeholder="e.g. Central Station, Entrance B"
-              className="flex-1 bg-zinc-900/90 border border-zinc-800 rounded-2xl px-4 py-3 font-mono text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#25f497] transition-colors"
-            />
-            <button
-              type="button"
-              onClick={locate}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white font-mono text-xs transition-colors shrink-0"
-            >
-              <MapPin className="size-3.5 text-[#25f497]" />
-              <span>Locate me</span>
-            </button>
-          </div>
+          <LocationPicker
+            value={place}
+            onChange={(newPlace) => patchDraft({ place: newPlace })}
+            placeholder="Search for a location or use GPS..."
+          />
         </div>
 
         {/* Mode Selector */}

@@ -4,22 +4,28 @@ import { useEffect, useState } from "react"
 import { MapPin, Navigation } from "lucide-react"
 
 // Parse GPS coordinates from place string
-// Format: "GPS: 6.524372, 3.379210 (±15m)" or just coords
-export function parseCoordinates(place: string): { lat: number; lng: number } | null {
+// Formats supported:
+// - "GPS: 6.524372, 3.379210 (±15m)"
+// - "Address Name | GPS: lat, lng"
+// - Plain "lat, lng"
+export function parseCoordinates(place: string): { lat: number; lng: number; name?: string } | null {
   if (!place) return null
   
-  // Try to match "GPS: lat, lng" format
+  // Try to match "GPS: lat, lng" format (with optional address prefix)
   const gpsMatch = place.match(/GPS:\s*([-\d.]+),\s*([-\d.]+)/)
   if (gpsMatch) {
     const lat = parseFloat(gpsMatch[1])
     const lng = parseFloat(gpsMatch[2])
     if (!isNaN(lat) && !isNaN(lng)) {
-      return { lat, lng }
+      // Extract name if present (before the |)
+      const namePart = place.split("|")[0]?.trim()
+      const name = namePart && !namePart.includes("GPS:") ? namePart : undefined
+      return { lat, lng, name }
     }
   }
   
   // Try to match plain "lat, lng" format
-  const plainMatch = place.match(/^([-\d.]+),\s*([-\d.]+)/)
+  const plainMatch = place.match(/^([-\d.]+),\s*([-\d.]+)$/)
   if (plainMatch) {
     const lat = parseFloat(plainMatch[1])
     const lng = parseFloat(plainMatch[2])
@@ -29,6 +35,24 @@ export function parseCoordinates(place: string): { lat: number; lng: number } | 
   }
   
   return null
+}
+
+// Get display name from place string
+export function getPlaceName(place: string): string {
+  if (!place) return "Unknown location"
+  
+  // If it has a name part before |
+  const parts = place.split("|")
+  if (parts.length > 1 && parts[0].trim() && !parts[0].includes("GPS:")) {
+    return parts[0].trim()
+  }
+  
+  // If it's just GPS coordinates
+  if (place.includes("GPS:")) {
+    return "GPS Location"
+  }
+  
+  return place
 }
 
 interface LocationMapProps {

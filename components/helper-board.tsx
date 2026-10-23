@@ -2,13 +2,13 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useAnnounce } from "@/components/announce"
 import { PageTitle } from "@/components/page-title"
 import { Dialog } from "@/components/dialog"
 import { LocationMap, useMyLocation, parseCoordinates } from "@/components/location-map"
 import { useMesh, humanStory, type HelpRequest } from "@/lib/mesh-context"
-import { Heart, ShieldCheck, Users } from "lucide-react"
+import { Heart, ShieldCheck, Users, Phone, Video } from "lucide-react"
 import {
   Compass,
   Eye,
@@ -58,6 +58,36 @@ export function HelperBoard() {
   const [messageText, setMessageText] = useState("")
   const [refreshing, setRefreshing] = useState(false)
   const { location: myLocation } = useMyLocation()
+  const [chatMessages, setChatMessages] = useState<Array<{ id: string; senderName: string; content: string; createdAt: number }>>([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+
+  // Fetch messages for a request
+  const fetchMessages = useCallback(async (requestId: string) => {
+    setLoadingMessages(true)
+    try {
+      const res = await fetch(`/api/mesh/messages?requestId=${requestId}`)
+      const data = await res.json()
+      if (data.ok) {
+        setChatMessages(data.messages || [])
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setLoadingMessages(false)
+    }
+  }, [])
+
+  // When message dialog opens, fetch messages
+  useEffect(() => {
+    if (messageId) {
+      fetchMessages(messageId)
+      // Poll for new messages
+      const interval = setInterval(() => fetchMessages(messageId), 3000)
+      return () => clearInterval(interval)
+    } else {
+      setChatMessages([])
+    }
+  }, [messageId, fetchMessages])
 
   // Manual refresh function
   const handleRefresh = useCallback(async () => {
@@ -75,10 +105,12 @@ export function HelperBoard() {
     if (result.ok) {
       announce(`Message sent to ${requesterName}`)
       setMessageText("")
+      // Refresh messages to show the sent message
+      await fetchMessages(requestId)
     } else {
       announce(`Failed to send: ${result.message}`)
     }
-  }, [messageText, meshSendMessage, announce])
+  }, [messageText, meshSendMessage, announce, fetchMessages])
 
   // Handle accept
   const handleAccept = useCallback(async (request: HelpRequest) => {
@@ -339,8 +371,8 @@ export function HelperBoard() {
       {/* Pre-Accept Messaging Dialog */}
       <Dialog
         open={Boolean(messageId)}
-        title={messageId ? `Message ${open.find(r => r.id === messageId)?.requesterName || "requester"}` : "Send message"}
-        description="Send a message before accepting. This helps clarify details or let them know you're on your way."
+        title={messageId ? `Chat with ${open.find(r => r.id === messageId)?.requesterName || "requester"}` : "Send message"}
+        description="Send a message or call before accepting."
         onClose={() => {
           setMessageId(null)
           setMessageText("")
@@ -352,23 +384,82 @@ export function HelperBoard() {
           
           return (
             <div className="space-y-4">
-              {/* Map preview */}
-              {parseCoordinates(msgRequest.place) && (
-                <LocationMap 
-                  place={msgRequest.place} 
-                  requesterName={msgRequest.requesterName}
-                  helperLocation={myLocation}
-                  height="150px"
-                />
+              {/* Location - Map or Text */}
+              {msgRequest.place && (
+                parseCoordinates(msgRequest.place) ? (
+                  <LocationMap 
+                    place={msgRequest.place} 
+                    requesterName={msgRequest.requesterName}
+                    helperLocation={myLocation}
+                    height="150px"
+                  />
+                ) : (
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 flex items-center gap-3">
+                    <MapPin className="size-5 text-[#25f497] shrink-0" />
+                    <div>
+                      <p className="text-sm font-mono text-white">{msgRequest.place}</p>
+                      <p className="text-xs font-mono text-zinc-500">Location provided by requester</p>
+                    </div>
+                  </div>
+                )
               )}
+              
+              {/* Communication options */}
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={`tel:+1234567890`} // TODO: Get actual phone from user profile
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-mono text-sm transition-colors"
+                >
+                  <Phone className="size-4 text-[#25f497]" />
+                  Call
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // TODO: Implement video call
+                    announce("Video call coming soon!")
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-mono text-sm transition-colors"
+                >
+                  <Video className="size-4 text-[#25f497]" />
+                  Video Call
+                </button>
+              </div>
+              
+              {/* Message history */}
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-3 max-h-48 overflow-y-auto">
+                {loadingMessages ? (
+                  <p className="text-xs font-mono text-zinc-500 text-center py-4">Loading messages...</p>
+                ) : chatMessages.length === 0 ? (
+                  <p className="text-xs font-mono text-zinc-500 text-center py-4">No messages yet. Start the conversation!</p>
+                ) : (
+                  <div className="space-y-2">
+                    {chatMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`p-2.5 rounded-xl text-xs font-mono max-w-[85%] ${
+                          msg.senderName === "Helper" || msg.senderName === userName
+                            ? "ml-auto bg-[#25f497]/15 border border-[#25f497]/30 text-zinc-100"
+                            : "mr-auto bg-zinc-800 border border-zinc-700 text-zinc-200"
+                        }`}
+                      >
+                        <strong className={msg.senderName === "Helper" || msg.senderName === userName ? "text-[#25f497]" : "text-zinc-400"}>
+                          {msg.senderName}:
+                        </strong>{" "}
+                        {msg.content}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               
               {/* Quick message buttons */}
               <div className="flex flex-wrap gap-2">
                 {[
-                  "I can help! On my way.",
-                  "How far are you exactly?",
-                  "I'll be there in 5 minutes",
-                  "Can you share more details?",
+                  "I can help!",
+                  "On my way",
+                  "5 min away",
+                  "More details?",
                 ].map((quick) => (
                   <button
                     key={quick}
