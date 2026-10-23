@@ -23,12 +23,33 @@ function wasBannerDismissed(): boolean {
   return sessionStorage.getItem("pwa-banner-dismissed") === "true"
 }
 
+// Custom hook to track online status without SSR hydration issues
+function useIsOnline() {
+  const getOnlineStatus = () => typeof navigator !== "undefined" ? navigator.onLine : true
+  const [isOnline, setIsOnline] = useState(getOnlineStatus)
+
+  useEffect(() => {
+    function handleOnline() { setIsOnline(true) }
+    function handleOffline() { setIsOnline(false) }
+
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
+
+    return () => {
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
+    }
+  }, [])
+
+  return isOnline
+}
+
 export function PWAInstall() {
   const announce = useAnnounce()
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showBanner, setShowBanner] = useState(() => !wasBannerDismissed())
-  const [isOnline, setIsOnline] = useState(() => typeof navigator !== "undefined" ? navigator.onLine : true)
   const [isInstalled, setIsInstalled] = useState(checkIfInstalled)
+  const isOnline = useIsOnline()
 
   useEffect(() => {
     // Listen for install prompt
@@ -47,24 +68,12 @@ export function PWAInstall() {
       announce("HelpMesh has been installed!")
     }
 
-    // Online/offline status
-    function updateOnlineStatus() {
-      setIsOnline(navigator.onLine)
-      if (!navigator.onLine) {
-        announce("You are offline. Some features may be limited.")
-      }
-    }
-
     window.addEventListener("beforeinstallprompt", handleBeforeInstall)
     window.addEventListener("appinstalled", handleAppInstalled)
-    window.addEventListener("online", updateOnlineStatus)
-    window.addEventListener("offline", updateOnlineStatus)
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall)
       window.removeEventListener("appinstalled", handleAppInstalled)
-      window.removeEventListener("online", updateOnlineStatus)
-      window.removeEventListener("offline", updateOnlineStatus)
     }
   }, [announce])
 
@@ -95,12 +104,19 @@ export function PWAInstall() {
   }
 
 
-  // Offline indicator
+  // Offline indicator - only show when actually offline
   if (!isOnline) {
     return (
       <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500/90 text-black px-4 py-2 text-center font-mono text-xs flex items-center justify-center gap-2 backdrop-blur-sm">
         <WifiOff className="size-4" aria-hidden="true" />
         <span>You&apos;re offline. Some features may be unavailable.</span>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="ml-2 px-2 py-0.5 bg-black/20 rounded text-[10px] hover:bg-black/30"
+        >
+          Refresh
+        </button>
       </div>
     )
   }
@@ -207,29 +223,5 @@ export function ServiceWorkerRegistration() {
   return null
 }
 
-// Online Status Hook
-export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(() => typeof navigator !== "undefined" ? navigator.onLine : true)
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    function handleOnline() {
-      setIsOnline(true)
-    }
-
-    function handleOffline() {
-      setIsOnline(false)
-    }
-
-    window.addEventListener("online", handleOnline)
-    window.addEventListener("offline", handleOffline)
-
-    return () => {
-      window.removeEventListener("online", handleOnline)
-      window.removeEventListener("offline", handleOffline)
-    }
-  }, [])
-
-  return isOnline
-}
+// Online Status Hook (exported for use in other components)
+export { useIsOnline as useOnlineStatus }

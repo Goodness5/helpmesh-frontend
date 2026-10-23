@@ -224,13 +224,24 @@ export function VoiceController() {
             }, 2000)
           }
         } else if (event.error === "aborted") {
-          // User or system aborted - no need to show error
-          setFeedback("Voice recognition stopped.")
+          // User or system aborted - no need to show error unless it's unexpected
+          if (retryCount.current === 0) {
+            setFeedback("Voice recognition stopped.")
+          }
         } else if (event.error === "audio-capture") {
-          setFeedback("No microphone found. Please connect a microphone and try again.")
-          speak("No microphone detected.")
+          // Microphone disconnected or unavailable
+          setFeedback("Microphone disconnected or unavailable. Please check your microphone and tap to retry.")
+          speak("Microphone disconnected.")
+          // Try to recover after a delay
+          if (retryCount.current < 2) {
+            retryCount.current++
+            setTimeout(() => {
+              setFeedback("Attempting to reconnect microphone...")
+              startListeningRef.current()
+            }, 1500)
+          }
         } else if (event.error === "service-not-allowed") {
-          setFeedback("Speech service not available. Please try again later.")
+          setFeedback("Speech service not available. This may be a browser restriction. Try using Chrome.")
         } else {
           setFeedback(`Voice error: ${event.error}. Tap microphone to retry.`)
         }
@@ -238,6 +249,7 @@ export function VoiceController() {
 
       recognition.onend = () => {
         setListening(false)
+        // Don't auto-restart if there was an error (error handler will handle it)
       }
 
       recognitionRef.current = recognition
@@ -247,9 +259,20 @@ export function VoiceController() {
       retryCount.current = 0
       setFeedback("Listening... Say a command like 'ask for help' or 'wallet'")
       speak("Listening. Say a command.")
-    } catch {
+    } catch (error) {
       setListening(false)
-      setFeedback("Failed to start voice recognition. Please try again.")
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      
+      // Handle specific errors
+      if (errorMessage.includes("not-allowed") || errorMessage.includes("permission")) {
+        setFeedback("Microphone permission denied. Please allow microphone access in your browser.")
+      } else if (errorMessage.includes("audio") || errorMessage.includes("device")) {
+        setFeedback("Microphone unavailable. Please check your microphone connection.")
+      } else {
+        setFeedback("Failed to start voice recognition. Please try again.")
+      }
+      
+      console.error("Voice recognition error:", error)
     }
   }, [handleVoiceCommand, speak])
 
