@@ -196,9 +196,10 @@ export function distanceText(helper: Helper): string {
 }
 
 /** Distance, skill, and verified help. Payment never changes the score. */
-export function rankHelpers(helpers: Helper[], request: { mode: Mode; category: string }) {
+export function rankHelpers(helpers: (Helper | undefined | null)[], request: { mode: Mode; category: string }) {
   return helpers
-    .filter((helper) => {
+    .filter((helper): helper is Helper => {
+      if (!helper) return false
       if (request.mode === "volunteer") return helper.acceptsFree
       return helper.acceptsPaid || helper.acceptsFree
     })

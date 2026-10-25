@@ -6,7 +6,6 @@ import { useAnnounce } from "@/components/announce"
 import { PageTitle } from "@/components/page-title"
 import {
   cancel,
-  chat,
   choose,
   completeHelp,
   confirm,
@@ -95,6 +94,11 @@ export function RequestScreen({ id }: { id: string }) {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [callOpen, setCallOpen] = useState(false)
   const [callType, setCallType] = useState<"video" | "audio">("video")
+  const [incomingCall, setIncomingCall] = useState<{
+    callType: "video" | "audio"
+    initiator: string
+  } | null>(null)
+  const [isAnswering, setIsAnswering] = useState(false)
   const [cardOpen, setCardOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [problemOpen, setProblemOpen] = useState(false)
@@ -165,6 +169,9 @@ export function RequestScreen({ id }: { id: string }) {
   } : undefined)
 
   const asHelper = request?.owner !== "me"
+  const active = Boolean(
+    request && (request.status === "assigned" || request.status === "started" || request.status === "awaiting_confirm")
+  )
   const title = request ? headline(request, asHelper) : ""
   const statusKey = `${request?.id ?? ""}:${request?.status ?? ""}:${request?.escrow?.state ?? ""}:${request?.helperId ?? ""}`
   const told = useRef("")
@@ -220,6 +227,66 @@ export function RequestScreen({ id }: { id: string }) {
     } finally {
       setSendingMessage(false)
     }
+  }
+
+  // Poll call state for incoming calls from peer
+  useEffect(() => {
+    if (!id || !active) return
+
+    const myRole = asHelper ? "helper" : "requester"
+    let isCurrent = true
+
+    const pollCall = async () => {
+      try {
+        const res = await fetch(`/api/mesh/call?requestId=${encodeURIComponent(id)}`)
+        const data = await res.json()
+        if (!isCurrent || !data.ok || !data.call) return
+
+        const { status, initiator, callType: incomingType } = data.call
+
+        if (status === "calling" && initiator !== myRole && !callOpen) {
+          setIncomingCall({
+            callType: incomingType || "video",
+            initiator,
+          })
+        } else if (status === "ended" || status === "idle") {
+          setIncomingCall(null)
+        }
+      } catch {
+        // Silent ignore
+      }
+    }
+
+    void pollCall()
+    const interval = setInterval(pollCall, 2000)
+    return () => {
+      isCurrent = false
+      clearInterval(interval)
+    }
+  }, [id, active, asHelper, callOpen])
+
+  function handleAnswerIncomingCall() {
+    if (!incomingCall) return
+    const type = incomingCall.callType
+    setCallType(type)
+    setIsAnswering(true)
+    setIncomingCall(null)
+    setCallOpen(true)
+    announce(`Answering ${type} call.`)
+  }
+
+  function handleDeclineIncomingCall() {
+    setIncomingCall(null)
+    announce("Call declined.")
+    void fetch("/api/mesh/call", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requestId: id,
+        action: "decline",
+        sender: asHelper ? "helper" : "requester",
+      }),
+    })
   }
 
   useEffect(() => {
@@ -286,7 +353,6 @@ export function RequestScreen({ id }: { id: string }) {
       })
     : ""
   const ranked = rankHelpers(HELPERS, request)
-  const active = request.status === "assigned" || request.status === "started" || request.status === "awaiting_confirm"
 
   function run(result: string | Promise<string>, urgent = false) {
     if (liveChain && typeof result !== "string") announce("Sending this now.")
@@ -683,6 +749,56 @@ export function RequestScreen({ id }: { id: string }) {
       {/* Active Session Coordination Tools */}
       {active && (
         <div className="space-y-6">
+          {/* Incoming Call Notification Banner */}
+          {incomingCall && (
+            <div className="rounded-3xl border-2 border-[#25f497] bg-zinc-950 p-6 sm:p-7 shadow-[0_0_35px_rgba(37,244,151,0.3)] animate-pulse space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-12 rounded-2xl bg-[#25f497] flex items-center justify-center text-black shrink-0">
+                    {incomingCall.callType === "video" ? (
+                      <Video className="size-6 animate-bounce" />
+                    ) : (
+                      <Phone className="size-6 animate-bounce" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-widest text-[#25f497]">
+                        Incoming {incomingCall.callType} Call...
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-medium text-white">
+                      {shownHelper} is calling you
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAnswerIncomingCall}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-[#25f497] hover:bg-[#1ee088] text-black font-semibold px-6 py-3 rounded-full text-xs transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-[#25f497]/20"
+                  >
+                    {incomingCall.callType === "video" ? (
+                      <Video className="size-4" />
+                    ) : (
+                      <Phone className="size-4" />
+                    )}
+                    <span>Answer {incomingCall.callType === "video" ? "Video" : "Call"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeclineIncomingCall}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 border border-red-500/40 bg-red-950/40 hover:bg-red-950/80 text-red-300 font-semibold px-5 py-3 rounded-full text-xs transition-colors"
+                  >
+                    <span>Decline</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Direct Peer Call Mode Card */}
           <div className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-7 sm:p-9 backdrop-blur-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-900 pb-5">
@@ -704,6 +820,7 @@ export function RequestScreen({ id }: { id: string }) {
                 <button
                   type="button"
                   onClick={() => {
+                    setIsAnswering(false)
                     setCallType("video")
                     setCallOpen(true)
                   }}
@@ -716,6 +833,7 @@ export function RequestScreen({ id }: { id: string }) {
                 <button
                   type="button"
                   onClick={() => {
+                    setIsAnswering(false)
                     setCallType("audio")
                     setCallOpen(true)
                   }}
@@ -1140,7 +1258,11 @@ export function RequestScreen({ id }: { id: string }) {
         peerName={shownHelper}
         initialCallType={callType}
         asHelper={asHelper}
-        onClose={() => setCallOpen(false)}
+        isAnswering={isAnswering}
+        onClose={() => {
+          setCallOpen(false)
+          setIsAnswering(false)
+        }}
       />
     </div>
   )

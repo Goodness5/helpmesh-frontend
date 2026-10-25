@@ -20,6 +20,7 @@ interface CallModalProps {
   peerName: string
   initialCallType?: "video" | "audio"
   asHelper?: boolean
+  isAnswering?: boolean
   onClose: () => void
 }
 
@@ -33,6 +34,7 @@ function CallSession({
   peerName,
   initialCallType = "video",
   asHelper = false,
+  isAnswering = false,
   onClose,
 }: CallModalProps) {
   const announce = useAnnounce()
@@ -40,7 +42,7 @@ function CallSession({
   const [muted, setMuted] = useState(false)
   const [videoOff, setVideoOff] = useState(initialCallType === "audio")
   const [duration, setDuration] = useState(0)
-  const [connected, setConnected] = useState(false)
+  const [connected, setConnected] = useState(isAnswering)
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null)
 
   const localVideoRef = useRef<HTMLVideoElement>(null)
@@ -48,9 +50,13 @@ function CallSession({
   const streamRef = useRef<MediaStream | null>(null)
   const senderRole = asHelper ? "helper" : "requester"
 
-  // Initiate call and start camera/microphone stream
+  // Initiate or answer call and start camera/microphone stream
   useEffect(() => {
-    announce(`Connecting ${callType} call with ${peerName}...`)
+    announce(
+      isAnswering
+        ? `Answering ${callType} call from ${peerName}...`
+        : `Connecting ${callType} call with ${peerName}...`
+    )
 
     // Notify backend call signaling route
     void fetch("/api/mesh/call", {
@@ -58,19 +64,24 @@ function CallSession({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         requestId,
-        action: "initiate",
+        action: isAnswering ? "answer" : "initiate",
         sender: senderRole,
         callType,
       }),
     })
 
-    // Connection latency
-    const connectTimer = setTimeout(() => {
-      setConnected(true)
+    // Auto-connect timer if not answering
+    let connectTimer: NodeJS.Timeout | null = null
+    if (!isAnswering) {
+      connectTimer = setTimeout(() => {
+        setConnected(true)
+        announce(`Call connected with ${peerName}. Encrypted peer-to-peer session active.`)
+      }, 1500)
+    } else {
       announce(`Call connected with ${peerName}. Encrypted peer-to-peer session active.`)
-    }, 1200)
+    }
 
-    // Request actual user media stream
+    // Request actual user media stream with graceful fallbacks
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices
         .getUserMedia({
@@ -94,19 +105,53 @@ function CallSession({
                 streamRef.current = audioStream
                 setVideoOff(true)
               })
-              .catch(() => {})
+              .catch(() => {
+                setVideoOff(true)
+              })
+          } else {
+            setVideoOff(true)
           }
         })
+    } else {
+      setHasCameraPermission(false)
+      setVideoOff(true)
     }
 
     return () => {
-      clearTimeout(connectTimer)
+      if (connectTimer) clearTimeout(connectTimer)
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
         streamRef.current = null
       }
     }
-  }, [callType, requestId, peerName, senderRole, announce])
+  }, [callType, requestId, peerName, senderRole, isAnswering, announce])
+
+  // Poll call signaling route to sync connection and remote termination
+  useEffect(() => {
+    let active = true
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/mesh/call?requestId=${encodeURIComponent(requestId)}`)
+        const data = await res.json()
+        if (active && data.ok && data.call) {
+          if (data.call.status === "ended") {
+            announce("Call ended by peer.")
+            onClose()
+          } else if (data.call.status === "connected" && !connected) {
+            setConnected(true)
+            announce(`Call connected with ${peerName}.`)
+          }
+        }
+      } catch {
+        // Network polling error, ignore silently
+      }
+    }, 2000)
+
+    return () => {
+      active = false
+      clearInterval(pollInterval)
+    }
+  }, [requestId, connected, peerName, announce, onClose])
 
   // Call duration timer
   useEffect(() => {

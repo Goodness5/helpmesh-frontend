@@ -43,6 +43,10 @@ export async function GET(request: Request) {
     candidates: [],
   }
 
+  if (session.status === "ended" && session.startedAt && Date.now() - session.startedAt > 15000) {
+    session.status = "idle"
+  }
+
   return NextResponse.json({
     ok: true,
     call: session,
@@ -104,8 +108,17 @@ export async function POST(request: Request) {
         if (sender === "helper") session.helperVideoOff = videoOff
         break
 
+      case "terminate":
       case "end":
+      case "decline":
         session.status = "ended"
+        session.offer = null
+        session.answer = null
+        session.candidates = []
+        break
+
+      case "reset":
+        session.status = "idle"
         session.offer = null
         session.answer = null
         session.candidates = []

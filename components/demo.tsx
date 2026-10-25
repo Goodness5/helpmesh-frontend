@@ -256,7 +256,7 @@ export function hold(id: string) {
 
 export function choose(id: string, helperId: string) {
   return guard(async () => {
-    let request = requestById(id)
+    const request = requestById(id)
     
     // If request not in local state, it might be a shared request from the API
     // Import it to local state first

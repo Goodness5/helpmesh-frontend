@@ -153,6 +153,31 @@ export function LiveLocation({ requestId, peerName, asHelper = false }: LiveLoca
     setTimeout(() => setSharing(true), 100)
   }
 
+  function simulateLocation() {
+    const baseLat = 37.774929
+    const baseLng = -122.419416
+    const lat = asHelper ? baseLat + 0.0011 : baseLat
+    const lng = asHelper ? baseLng + 0.0009 : baseLng
+    setMyCoords({ lat, lng })
+    setLastPing(Date.now())
+    setLocationError(null)
+
+    void fetch("/api/mesh/location", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        requestId,
+        role: senderRole,
+        lat,
+        lng,
+        accuracy: 10,
+        heading: asHelper ? 225 : 45,
+        speed: 1.3,
+      }),
+    })
+    announce(`Simulated ${senderRole} GPS coordinates active.`)
+  }
+
   // Poll for peer's live location and telemetry
   useEffect(() => {
     if (!sharing) return
@@ -197,17 +222,27 @@ export function LiveLocation({ requestId, peerName, asHelper = false }: LiveLoca
               )}
             </div>
           </div>
-          {locationError !== "insecure" && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {locationError !== "insecure" && (
+              <button
+                type="button"
+                onClick={retryLocation}
+                disabled={retrying}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`size-3.5 ${retrying ? "animate-spin" : ""}`} aria-hidden="true" />
+                {retrying ? "Retrying..." : "Retry Location"}
+              </button>
+            )}
             <button
               type="button"
-              onClick={retryLocation}
-              disabled={retrying}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 text-xs font-medium transition-colors disabled:opacity-50"
+              onClick={simulateLocation}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25f497]/20 hover:bg-[#25f497]/30 text-[#25f497] text-xs font-medium transition-colors border border-[#25f497]/30"
             >
-              <RefreshCw className={`size-3.5 ${retrying ? "animate-spin" : ""}`} aria-hidden="true" />
-              {retrying ? "Retrying..." : "Retry Location"}
+              <Radio className="size-3.5" />
+              <span>Simulate Coordinates (Test Mode)</span>
             </button>
-          )}
+          </div>
         </div>
       )}
 
@@ -301,7 +336,18 @@ export function LiveLocation({ requestId, peerName, asHelper = false }: LiveLoca
 
       {/* Local GPS Coordinates and Telemetry Ping Readout */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-500 pt-1 border-t border-zinc-900">
-        <span>Local GPS: {myCoords ? `${myCoords.lat.toFixed(5)}, ${myCoords.lng.toFixed(5)}` : "Awaiting fix..."}</span>
+        <div className="flex items-center gap-2">
+          <span>Local GPS: {myCoords ? `${myCoords.lat.toFixed(5)}, ${myCoords.lng.toFixed(5)}` : "Awaiting fix..."}</span>
+          {!myCoords && (
+            <button
+              type="button"
+              onClick={simulateLocation}
+              className="text-[#25f497] hover:underline"
+            >
+              (Simulate)
+            </button>
+          )}
+        </div>
         <span>Telemetry stream: {lastPing ? "Live Stream Active" : "Standby"}</span>
       </div>
 

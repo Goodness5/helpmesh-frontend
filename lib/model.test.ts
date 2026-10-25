@@ -3,7 +3,6 @@ import test from "node:test"
 import {
   escrowSentence,
   formatTestMoney,
-  HELPERS,
   parseAmount,
   rankHelpers,
   reputationScore,
@@ -49,7 +48,30 @@ test("escrow copy matches the contract states", () => {
 })
 
 test("a closer helper ranks above a farther one, and pay does not change order", () => {
-  const [near, far] = HELPERS
+  const near: Helper = {
+    id: "daniel",
+    name: "Daniel",
+    distanceM: 300,
+    direction: "north-east",
+    verified: true,
+    completions: 87,
+    acceptsFree: true,
+    acceptsPaid: true,
+    skills: ["mobility", "errand"],
+    communicate: ["text", "gestures"],
+  }
+  const far: Helper = {
+    id: "priya",
+    name: "Priya",
+    distanceM: 650,
+    direction: "east",
+    verified: true,
+    completions: 42,
+    acceptsFree: true,
+    acceptsPaid: false,
+    skills: ["vision", "companionship"],
+    communicate: ["text"],
+  }
   const reward = rankHelpers([far, near], { mode: "reward", category: "mobility" })
   assert.equal(reward[0]?.helper.id, "daniel")
   const again = rankHelpers([far, near], { mode: "reward", category: "mobility" })
